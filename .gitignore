@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 keys
 *.csv
+checker.py
+test.py

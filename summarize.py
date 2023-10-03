@@ -1,4 +1,4 @@
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, TokenTextSplitter
 from langchain.docstore.document import Document
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import load_prompt
@@ -15,21 +15,26 @@ def summarize_article(apikey: str, content: str, ):
     encoding = tiktoken.encoding_for_model('gpt-3.5-turbo')
     token_count = len(encoding.encode(content))
 
-    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo', max_tokens=624)
+    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo', max_tokens=1248)
 
-    # Create Document object for the text
-    docs = [Document(page_content=content)]
-
-    if token_count < 1872:
+    if token_count < 1248:
         # chunk size of template was calculated (3072-1600)
         text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=1872, chunk_overlap=0
+            chunk_size=1248, chunk_overlap=0, model_name='gpt-3.5-turbo'
         )
+        # Create Document object for the text
+        docs = [Document(page_content=content)]
         split_docs = text_splitter.split_documents(docs)
     else:
         text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=11088, chunk_overlap=0
+            chunk_size=11088, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
         )
+        if token_count >= 11088:
+            text_splitter = TokenTextSplitter.from_tiktoken_encoder(
+                chunk_size=11088, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
+            )
+        # Create Document object for the text
+        docs = [Document(page_content=content)]
         split_docs = text_splitter.split_documents(docs)
         llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k', max_tokens=3696)
 
@@ -53,7 +58,7 @@ def summarize_article(apikey: str, content: str, ):
         # If documents exceed context for `StuffDocumentsChain`
         collapse_documents_chain=combine_documents_chain,
         # The maximum number of tokens to group documents into.
-        token_max=50000,
+        token_max=13333,
     )
 
     # Combining documents by mapping a chain over them, then combining results

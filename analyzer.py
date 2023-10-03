@@ -140,6 +140,53 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 1 - {sumarized_count} articles were summarized in {end_t - start_t} seconds')
 
+    def stage_1_save_db(self, csv_filename):
+        self.logger.log(f'Stage 1 - loading summaries from {csv_filename}')
+        start_t = time()
+        data_list = []
+        with open(csv_filename, 'r', encoding='utf-8') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                if not row:
+                    continue
+                article = row[0]
+                title = row[2]
+                category = row[3]
+                summary = row[4]
+                day_score = row[5]
+                day_reason = row[6]
+                week_score = row[7]
+                week_reason = row[8]
+                month_score = row[9]
+                month_reason = row[10]
+                site_name = row[11]
+                link = row[12]
+
+                score = {
+                    "day": {"score": day_score, "reason": day_reason},
+                    "week": {"score": week_score, "reason": week_reason},
+                    "month": {"score": month_score, "reason": month_reason}
+                }
+                data_list.append(
+                    {"article": article,
+                    "title": title,
+                    "category": category,
+                    "summary": summary,
+                    "score": score,
+                    "site_name": site_name,
+                    "link": link}
+                )
+        end_t = time()
+        self.logger.log(f'Stage 1 - loaded {len(data_list)} summaries in {end_t - start_t} seconds')
+        self.logger.log(f'Stage 1 - saving summaries in db...')
+        start_t = time()
+        self.db["main_articles"].drop()
+        new_collection = self.db['main_articles']
+        result = new_collection.insert_many(data_list)
+        print("Data inserted successfully. Inserted IDs:", result.inserted_ids)
+        end_t = time()
+        self.logger.log(f'Stage 1 - Saved {len(result.inserted_ids)} summaries in db...')
 
 def stage_1_thread_handler(
         apikey: str,

@@ -8,6 +8,7 @@ try:
     anal = Analyzer()
     lg.log('Stage 1 - Started...')
     anal.stage_1("result.csv")
+    anal.stage_1_save_db("result.csv")
     lg.log('Stage 1 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
