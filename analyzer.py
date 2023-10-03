@@ -5,11 +5,14 @@ from multiprocessing.pool import ApplyResult
 from pymongo import MongoClient
 from pymongo.database import Database
 from dotenv import find_dotenv, load_dotenv
-from summarize import summarize_article
+from stages import summarize_article, categorize
 from logger import Logger
 from time import time, sleep
 from openai.error import InvalidRequestError, RateLimitError, AuthenticationError
 import random
+from helpers import remove_non_numbers_regex
+import json
+import traceback
 
 # find and load .env file
 load_dotenv(find_dotenv())
@@ -42,7 +45,7 @@ class Analyzer:
         }
         self.categories = [
             "Politics",
-            "Business and Finance"
+            "Business and Finance",
             "Entertainment",
             "Science and Technology",
             "Sports",
@@ -69,7 +72,7 @@ class Analyzer:
                 invalid_file.write(apikey + '\n')
 
     def stage_1(self, csv_filename):
-        os.remove(csv_filename) if os.path.exists('result.csv') else None
+        os.remove(csv_filename) if os.path.exists(csv_filename) else None
 
         start_t = time()
         # to test
@@ -187,6 +190,125 @@ class Analyzer:
         print("Data inserted successfully. Inserted IDs:", result.inserted_ids)
         end_t = time()
         self.logger.log(f'Stage 1 - Saved {len(result.inserted_ids)} summaries in db...')
+
+    def stage_2(self, stage1_csv: str, csv_filename: str, timeframe: str):
+        os.remove(csv_filename) if os.path.exists(csv_filename) else None
+        self.logger.log(f'Stage 2 - loading articles from {stage1_csv}')
+        titles = []
+        categories = set()
+        total = 0
+        start_t = time()
+        with open(stage1_csv, 'r', encoding='utf-8') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+
+            for row in csv_reader:
+                total += 1
+                try:
+                    if row[2] == '': continue
+                    if timeframe == 'day' and row[5] == '': continue
+                    if timeframe == 'week' and row[7] == '': continue
+                    if timeframe == 'month' and row[9] == '': continue
+                    score = 0
+                    if timeframe == 'day':
+                        score = int(remove_non_numbers_regex(row[5]))
+                    elif timeframe == 'week':
+                        score = int(remove_non_numbers_regex(row[7]))
+                    elif timeframe == 'month':
+                        score = int(remove_non_numbers_regex(row[9]))
+
+                    article = row[0]
+                    title = row[2]
+                    category = row[3]  # Assuming the category is in the 4th column
+                    summary = row[4]
+                    categories.add(category)  # Add category to the set of unique categories
+
+                    if any(item['title'] == title for item in titles):
+                        print(title)
+                        continue
+                    titles.append({'article': article, 'title': title, 'score': score, 'category': category, 'summary': summary})
+                except IndexError as err:
+                    self.logger.log(f'Stage 2 - Error while loading articles: {err}')
+                    pass
+        end_t = time()
+        self.logger.log(f'Stage 2 - articles were loaded from {stage1_csv} in {end_t - start_t} second')
+
+        for category in categories:
+            if category not in self.categories:
+                continue
+            category_titles = [title for title in titles if title['category'] == category]
+            sorted_titles = sorted(category_titles, key=lambda x: x['score'], reverse=True)
+
+            primaries = []
+            for title in sorted_titles[0:20]:
+                if title['title'] != '':
+                    primaries.append(title['title'])
+            secondaries = []
+            for title in sorted_titles[20:270]:
+                if title['title'] != '':
+                    secondaries.append(title['title'])
+
+            result = []
+            try:
+                result = self.stage_2_category(primaries=primaries, secondaries=secondaries)
+                print(result[0])
+                self.logger.log(f"Stage 2: {category} for {timeframe}-timeframe:\n {result[1]}")
+            except Exception as er:
+                error = str(traceback.print_exc())
+                self.logger.log(f"Stage 2: Error while categorizing: {er} in {error}")
+            try:
+                data = json.loads(result[0])
+                if data:
+                    with open(csv_filename, "a", encoding='utf-8') as file:
+                        writer = csv.writer(file)
+                        writer.writerow([category, primaries, secondaries, data])
+                else:
+                    print('Error')
+            except json.decoder.JSONDecodeError as err:
+                self.logger.log(f"Stage 2: JSONDecode Error: {err} in {result}")
+
+    def stage_2_category(self, primaries, secondaries):
+        apikey = random.choice(self.apikeys)
+        try:
+            result = categorize(apikey=apikey, primaries=primaries, secondaries=secondaries)
+            return result
+        except InvalidRequestError as er:
+            print(er)
+        except AuthenticationError as er:
+            self.log_invalid_key(apikey)
+            self.logger.log(f"Stage 2: Invalid apikey: {apikey}")
+            self.stage_2_category(primaries, secondaries)
+        except RateLimitError as er:
+            print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
+            if er.error['type'] == 'insufficient_quota':
+                self.logger.log(f"Stage 2: Invalid apikey: {apikey}")
+                self.stage_2_category(primaries, secondaries)
+            # elif er.error['type'] == 'requests' and er.error['code'] == 'rate_limit_exceeded':
+            elif er.error['code'] == 'rate_limit_exceeded':
+                # check if remaining requests are not 0
+                self.stage_2_category(primaries, secondaries)
+                # if er.headers['x-ratelimit-remaining-requests'] == 0:
+                # else:
+                #     sleep(20)
+                #     return stage_1_thread_handler( apikey, article, site_name, link,)
+    
+    def stage_2_save_db(self, csv_filename: str, collection: str):
+        data_list = []
+        with open(csv_filename, 'r') as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                if not row:
+                    continue
+                category = row[0]
+                data = row[2]
+                dictionary = eval(data)
+                data_list.append({"category": category, "data": dictionary})
+
+        self.db[collection].drop()
+        new_collection = self.db[collection]
+
+        result = new_collection.insert_many(data_list)
+        self.logger.log(f"Stage 2 - data saved from {csv_filename} into {collection} collection")
 
 def stage_1_thread_handler(
         apikey: str,

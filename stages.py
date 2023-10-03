@@ -83,3 +83,27 @@ def summarize_article(apikey: str, content: str, ):
                 return [summary, cb]
     except InvalidRequestError as er:
         raise InvalidRequestError(f"model: {llm.model_name}\ntoken_count: {token_count}", er.param)
+
+def categorize(apikey: str, primaries: list[str], secondaries: list[str]):
+    primary = ""
+    for i, title in enumerate(primaries):
+        primary += f"{i+1} {title}\n"
+    
+    secondary = ""
+    for title in secondaries:
+        secondary += f"- {title}\n"
+    
+    prompt = load_prompt("./prompts/categorize.yaml")
+    # print(prompt.format(primary_titles=primary, secondary_titles=secondary))
+    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k')
+    chain = LLMChain(llm=llm, prompt=prompt)
+    example = """[{"Primary": "Trump Indicted for Espionage", "Secondary": ["Trump Indicted for Espionage", "Trump faces criminal charges", "Trump Arrested on Classified Documents Charges"], "Title": [Trump under investigation]}, ...]"""
+    encoding = tiktoken.encoding_for_model('gpt-3.5-turbo')
+    token_count = len(encoding.encode(primary+secondary))
+    print(primary)
+    print(secondary)
+    print(token_count)
+    with get_openai_callback() as cb:
+        result: str = chain.run(primary_titles=primary, secondary_titles=secondary, example=example)
+        result = result.split(']}]')[0] + ']}]'
+        return [result, cb]

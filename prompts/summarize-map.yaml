@@ -19,16 +19,16 @@ template: |
   Below are ten categories of news. Based on the content of the news article, select the category that best fits it:
 
   ###Categories for task 2###
-  Politics
-  Business and Finance
-  Entertainment
-  Science and Technology
-  Sports
-  Crypto/Web3
-  Gaming
-  Law and Crime
-  Lifestyle and Health
-  Art and Fashion
+  - Politics
+  - Business and Finance
+  - Entertainment
+  - Science and Technology
+  - Sports
+  - Crypto/Web3
+  - Gaming
+  - Law and Crime
+  - Lifestyle and Health
+  - Art and Fashion
 
 
   ##Task 3##
