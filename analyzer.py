@@ -5,7 +5,7 @@ from multiprocessing.pool import ApplyResult
 from pymongo import MongoClient
 from pymongo.database import Database
 from dotenv import find_dotenv, load_dotenv
-from stages import summarize_article, categorize, extra_research
+from stages import summarize_article, categorize, extra_research, deep_research
 from logger import Logger
 from time import time, sleep
 from openai.error import InvalidRequestError, RateLimitError, AuthenticationError
@@ -134,7 +134,7 @@ class Analyzer:
                         print(f"Statge 1 - Error was occurred while get summary\n: {article_data[0]}")
                     else:
                         writer.writerow(article_data[0:-1])
-                        self.logger.log(f"Statge 1 - {sumarized_count}/{total} - {api_key} : {article_data[-1]}")
+                        self.logger.log(f"Statge 1 - {sumarized_count}/{total} : {article_data[-1]}")
                         sumarized_count += 1
                         continue
                     articles.append([article_data[2], article_data[3], article_data[4]])
@@ -318,7 +318,8 @@ class Analyzer:
             writer.writerow([
                 'category',
                 'topic',
-                'research'
+                'research',
+                'articles'
             ])
         toprompts = []
         summaries = []
@@ -401,7 +402,7 @@ class Analyzer:
                     else:
                         writer.writerow(article_data[0:-1])
                         researched_count += 1
-                        self.logger.log(f"Statge 3 - {researched_count}/{total} - {api_key} : {article_data[-1]}")
+                        self.logger.log(f"Statge 3 - {researched_count}/{total} : {article_data[-1]}")
                         continue
                     toprompt = {
                         "topic": article_data[2],
@@ -420,6 +421,7 @@ class Analyzer:
         researches = []
         with open(csv_filename, 'r') as file:
             csv_reader = csv.reader(file)
+            next(csv_reader)
             for row in csv_reader:
                 if not row:
                     continue
@@ -427,7 +429,7 @@ class Analyzer:
                 researches.append({
                     "category": row[0],
                     "topic": row[1],
-                    "research": row[2],
+                    "research": eval(row[2]),
                 })
         for category in categories:
             data_list.append({
@@ -441,6 +443,110 @@ class Analyzer:
         new_collection = self.db[collection]
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 3 - data saved from {csv_filename} into {collection} collection")
+    
+    def stage_4(self, stage3_csv: str, csv_filename: str):
+        os.remove(csv_filename) if os.path.exists(csv_filename) else None
+        with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([
+                'category',
+                'topic',
+                'background',
+                'deep_research'
+                'articles'
+            ])
+
+        data = []
+        categories = set()
+        start_t = time()
+        self.logger.log(f"Stage 4 - Loading data from {stage3_csv}...")
+        with open(stage3_csv, 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                if not row:
+                    continue
+                categories.add(row[0])
+                data.append({
+                    "category": row[0],
+                    "topic": row[1],
+                    "research": eval(row[2]),
+                    "articles": eval(row[3])
+                })
+        end_t = time()
+        self.logger.log(f"Stage 4 - loaded {len(data)} data from {stage3_csv} in {end_t - start_t} seconds")
+
+        total = len(data)
+        start_t = time()
+        researched = 0
+        while len(data) != 0:
+            pool = multiprocessing.Pool(processes=min(len(self.apikeys), 50))
+            results: list[ApplyResult] = []
+
+            for i, item in enumerate(data):
+                topic = item["topic"]
+                category = item["category"]
+                research = item["research"]
+                articles = item["articles"]
+                api_key = self.apikeys[i % len(self.apikeys)]  # Use a different API key for each process
+                if len(self.apikeys) > len(data):
+                    api_key = random.choice(self.apikeys)
+                results.append(pool.apply_async(stage_4_thread_handler, (api_key, category, topic, research, articles,)))
+            data = []
+            with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                for result in results:
+                    article_data = result.get()
+                    if article_data[1] == 'APIKey_Error':
+                        api_key = article_data[0]
+                        self.log_invalid_key(api_key)
+                    elif article_data[1] == 'Error':
+                        print(f"Statge 3 - Error was occurred in extra research\n: {article_data[0]}")
+                    else:
+                        writer.writerow([article_data[0], article_data[1], article_data[2], article_data[3], str(article_data[4])])
+                        researched += 1
+                        self.logger.log(f"Statge 4 - {researched}/{total} : {article_data[-1]}")
+                        continue
+                    data.append({
+                        "category": article_data[2],
+                        "topic": article_data[3],
+                        "research": article_data[4],
+                        "articles": article_data[5]
+                    })
+            pool.close()
+            pool.join()
+        end_t = time()
+        self.logger.log(f'Stage 4 - {researched} articles were extra researched in {end_t - start_t} seconds')
+    
+    def stage_4_save_db(self, csv_filename: str, collection: str):
+        data_list = []
+        categories = set()
+        dresearches = []
+        with open(csv_filename, 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                if not row:
+                    continue
+                categories.add(row[0])
+                dresearches.append({
+                    "category": row[0],
+                    "topic": row[1],
+                    "deep_research": eval(row[3]),
+                })
+        for category in categories:
+            print(row[3])
+            data_list.append({
+                "category": category,
+                "data": [{
+                    "topic": item["topic"],
+                    "deep_research": item["deep_research"]
+                } for item in dresearches if item["category"] == category]
+            })
+        self.db[collection].drop()
+        new_collection = self.db[collection]
+        result = new_collection.insert_many(data_list)
+        self.logger.log(f"Stage 4 - data saved from {csv_filename} into {collection} collection")
 
 def stage_1_thread_handler(
         apikey: str,
@@ -527,12 +633,12 @@ def stage_3_thread_handler(
         apikey: str,
         category: str,
         topic: str,
-        articles: list[str],
+        articles: dict,
     ):
     try:
         contents = [article['content'] for article in articles]
         summary = extra_research(apikey, contents)
-        return [category, topic, eval(summary[0]), summary[1]]
+        return [category, topic, eval(summary[0]), articles,  summary[1]]
     except InvalidRequestError as er:
         return [er, 'Error', category, topic, articles]
     except RateLimitError as er:
@@ -547,3 +653,29 @@ def stage_3_thread_handler(
         error = str(traceback.print_exc())
         print(error)
         return [er, 'Error', category, topic, articles]
+
+def stage_4_thread_handler(
+        apikey: str,
+        category: str,
+        topic: str,
+        research: dict,
+        articles: list,
+    ):
+    try:
+        summary = deep_research(apikey, articles, background=research)
+        eval(summary[0])
+        return [category, topic, research, summary[0], articles,  summary[1]]
+    except InvalidRequestError as er:
+        return [er, 'Error', category, topic, research, articles]
+    except RateLimitError as er:
+        print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
+        if er.error['type'] == 'insufficient_quota':
+            return [apikey, 'APIKey_Error', category, topic, research, articles]
+        elif er.error['code'] == 'rate_limit_exceeded':
+            return [er, 'Error', category, topic, research, articles]
+    except AuthenticationError as er:
+        return [apikey, 'APIKey_Error', category, topic, research, articles]
+    except Exception as er:
+        error = str(traceback.print_exc())
+        print(error)
+        return [er, 'Error', category, topic, research, articles]

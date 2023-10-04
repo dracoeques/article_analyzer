@@ -18,22 +18,24 @@ class Logger:
     
     def log(self, content):
         mode = os.environ["MODE"]
-        if mode == "dev":
-            print(content)
-            data = {
-                "content": content
-            }
-            response = requests.post(self.dscd_url, headers=self.dscd_headers, json=data)
-            if response.status_code != 200:
-                print(f"Failed to send discord message. Status code: {response.status_code}")
-                print(response.json())
-    
-        elif mode == "prod":
-            data = {
-                "content": content
-            }
-            response = requests.post(self.dscd_url, headers=self.dscd_headers, json=data)
-            if response.status_code != 200:
-                print(f"Failed to send discord message. Status code: {response.status_code}")
-                print(response.json())
-    
+        try:
+            if mode == "dev":
+                print(content)
+                data = {
+                    "content": content
+                }
+                response = requests.post(self.dscd_url, headers=self.dscd_headers, json=data)
+                if response.status_code != 200:
+                    print(f"Failed to send discord message. Status code: {response.status_code}")
+                    print(response.json())
+        
+            elif mode == "prod":
+                data = {
+                    "content": content
+                }
+                response = requests.post(self.dscd_url, headers=self.dscd_headers, json=data)
+                if response.status_code != 200:
+                    print(f"Failed to send discord message. Status code: {response.status_code}")
+                    print(response.json())
+        except Exception as er:
+            print(er)

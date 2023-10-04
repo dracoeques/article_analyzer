@@ -111,7 +111,7 @@ def categorize(apikey: str, primaries: list[str], secondaries: list[str]):
 def extra_research(apikey: str, articles: list[str]):
     content = "\n".join(articles)
     text_splitter = TokenTextSplitter.from_tiktoken_encoder(
-        chunk_size=11088, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
+        chunk_size=10000, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
     )
     # Create Document object for the text
     docs = [Document(page_content=content)]
@@ -120,15 +120,93 @@ def extra_research(apikey: str, articles: list[str]):
 
     original_prompt = load_prompt("./prompts/extra-research.yaml")
     full_template="""{{rules}}
-    Output must follow this format
+    Output must be in this format. This must be python dictinoary or json object
     ###Output Format###
-    [{"Introduction": "An opening section that provides an overview of the topic and sets the context for the rest of the content.", "Historical Perspective": "A section that explores the past events, developments, or context relevant to the subject matter.", "People/entities Involved": "An exploration of the individuals or organizations that play a significant role in the topic.", "Motivations": "An analysis of the reasons, factors, or driving forces behind certain actions or decisions related to the topic.", "Recent Developments": "An examination of the most recent updates, advancements, or changes related to the subject.", "Impact": "An assessment of the consequences, effects, or influence the topic has on individuals, society, or other aspects.", "Examples from recent history": "Specific instances or cases from recent times that illustrate and support the topic under discussion.", "Conclusion": "A closing section that summarizes the main points and findings and may offer insights or suggestions for the future."}]
+    {"Introduction": "An opening section that provides an overview of the topic and sets the context for the rest of the content.", "Historical Perspective": "A section that explores the past events, developments, or context relevant to the subject matter.", "People/entities Involved": "An exploration of the individuals or organizations that play a significant role in the topic.", "Motivations": "An analysis of the reasons, factors, or driving forces behind certain actions or decisions related to the topic.", "Recent Developments": "An examination of the most recent updates, advancements, or changes related to the subject.", "Impact": "An assessment of the consequences, effects, or influence the topic has on individuals, society, or other aspects.", "Examples from recent history": "Specific instances or cases from recent times that illustrate and support the topic under discussion.", "Conclusion": "A closing section that summarizes the main points and findings and may offer insights or suggestions for the future."}
+
     """
     final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
     input_prompts = [
         ("rules", original_prompt),
     ]
     prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
+
+    # Map
+    map_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Run chain
+    reduce_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="articles", 
+        # reduce_k_below_max_tokens=True,
+    )
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=13333,
+    )
+
+    # Combining documents by mapping a chain over them, then combining results
+    map_reduce_chain = MapReduceDocumentsChain(
+        # Map chain
+        llm_chain=map_chain,
+        # Reduce chain
+        reduce_documents_chain=reduce_documents_chain,
+        # The variable name in the llm_chain to put the documents in
+        document_variable_name="articles",
+        # Return the results of the map steps in the output
+        return_intermediate_steps=False,
+    )
+
+    with get_openai_callback() as cb:
+        if len(split_docs) == 1:
+            summary = combine_documents_chain.run(split_docs)
+            return [summary, cb]
+        else:
+            summary = map_reduce_chain.run(split_docs)
+            return [summary, cb]
+
+def deep_research(apikey: str, articles: list[dict[str:str]], background: dict):
+    content = "\n".join([f"Title: {article['title']}\nContent: {article['content']}" for article in articles])
+    background = "\n".join([f"{p}: {v}\n" for p, v in background.items()])
+
+
+    original_prompt = load_prompt("./prompts/deep-research.yaml")
+    full_template="""{{rules}}
+    Output must follow this format
+    Output must be in this format. This must be python dictinoary or json object
+    Don't include " in the middle of result sentences
+    ###Output Format###
+    {"1 day timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}, "1 week timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}, "1 month timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}}
+
+    ###additional background, context, and examples###
+    {{background}}
+    """
+    final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
+    background_prompt = PromptTemplate.from_template(background, template_format="jinja2")
+    input_prompts = [
+        ("rules", original_prompt),
+        ("background", background_prompt),
+    ]
+    prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
+
+    encoding = tiktoken.encoding_for_model('gpt-3.5-turbo')
+    token_count = len(encoding.encode(prompt.format(articles='')))
+    chunk_size = int((16000 - token_count) * 0.75)
+    max_token = int((16000 - token_count) * 0.25)
+    text_splitter = TokenTextSplitter.from_tiktoken_encoder(
+        chunk_size=chunk_size, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
+    )
+    # Create Document object for the text
+    docs = [Document(page_content=content)]
+    split_docs = text_splitter.split_documents(docs)
+    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k', max_tokens=max_token)
 
     # Map
     map_chain = LLMChain(llm=llm, prompt=prompt)
