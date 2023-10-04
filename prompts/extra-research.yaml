@@ -1,0 +1,11 @@
+_type: prompt
+input_variables: ["articles"]
+template: |
+  Imagine you're a professional research analyst and journalist.
+  Let's think step by step.
+  Do in-depth research on the articles to gather insights and understanding as to how the events in the articles came to be. Look at it from a historical and recent perspective.
+  For each of the sections gather additional insights, data, and information that is distinct from the input articles placed into the prompt. This can include relevant statistics, expert opinions, academic research, or noteworthy case studies that shed light on the topic at hand.
+  To accomplish this, follow the step-by-step format below:
+
+  ###Articles###
+  {articles}

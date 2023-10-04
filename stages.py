@@ -1,7 +1,7 @@
 from langchain.text_splitter import CharacterTextSplitter, TokenTextSplitter
 from langchain.docstore.document import Document
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import load_prompt
+from langchain.prompts import load_prompt, PipelinePromptTemplate, PromptTemplate
 from langchain.chains.llm import LLMChain
 from langchain.chains import MapReduceDocumentsChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
@@ -107,3 +107,66 @@ def categorize(apikey: str, primaries: list[str], secondaries: list[str]):
         result: str = chain.run(primary_titles=primary, secondary_titles=secondary, example=example)
         result = result.split(']}]')[0] + ']}]'
         return [result, cb]
+
+def extra_research(apikey: str, articles: list[str]):
+    content = "\n".join(articles)
+    text_splitter = TokenTextSplitter.from_tiktoken_encoder(
+        chunk_size=11088, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
+    )
+    # Create Document object for the text
+    docs = [Document(page_content=content)]
+    split_docs = text_splitter.split_documents(docs)
+    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k', max_tokens=3696)
+
+    original_prompt = load_prompt("./prompts/extra-research.yaml")
+    full_template="""{{rules}}
+    Output must follow this format
+    ###Output Format###
+    [{"Introduction": "An opening section that provides an overview of the topic and sets the context for the rest of the content.", "Historical Perspective": "A section that explores the past events, developments, or context relevant to the subject matter.", "People/entities Involved": "An exploration of the individuals or organizations that play a significant role in the topic.", "Motivations": "An analysis of the reasons, factors, or driving forces behind certain actions or decisions related to the topic.", "Recent Developments": "An examination of the most recent updates, advancements, or changes related to the subject.", "Impact": "An assessment of the consequences, effects, or influence the topic has on individuals, society, or other aspects.", "Examples from recent history": "Specific instances or cases from recent times that illustrate and support the topic under discussion.", "Conclusion": "A closing section that summarizes the main points and findings and may offer insights or suggestions for the future."}]
+    """
+    final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
+    input_prompts = [
+        ("rules", original_prompt),
+    ]
+    prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
+
+    # Map
+    map_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Run chain
+    reduce_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="articles", 
+        # reduce_k_below_max_tokens=True,
+    )
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=13333,
+    )
+
+    # Combining documents by mapping a chain over them, then combining results
+    map_reduce_chain = MapReduceDocumentsChain(
+        # Map chain
+        llm_chain=map_chain,
+        # Reduce chain
+        reduce_documents_chain=reduce_documents_chain,
+        # The variable name in the llm_chain to put the documents in
+        document_variable_name="articles",
+        # Return the results of the map steps in the output
+        return_intermediate_steps=False,
+    )
+
+    with get_openai_callback() as cb:
+        if len(split_docs) == 1:
+            summary = combine_documents_chain.run(split_docs)
+            return [summary, cb]
+        else:
+            summary = map_reduce_chain.run(split_docs)
+            return [summary, cb]

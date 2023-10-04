@@ -13,12 +13,13 @@ template: |
   Create a vague enough title to represent the grouping created.
 
   ###Output Format###
-  Hard Constraint: There should be 20 topics overall with the title of each of the "Primary" being the main focus.
+  Hard Constraint: There must be 20 topics overall with the title of each of the "Primary" being the main focus.
   The output should be strictly as follows and nothing more should be. No additional text, just a dictionary. Without "Note:"!
   If you want to write any notes, don't do it!
   Primary, Seconday and Title are requried fields
   Do not provide any additional information like Note.
   Plz follow the output format restrictly
+  Do not use primary titles as secondary titles
 
   ###Output Format to follow###
   {example}

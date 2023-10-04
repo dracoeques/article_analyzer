@@ -5,7 +5,7 @@ from multiprocessing.pool import ApplyResult
 from pymongo import MongoClient
 from pymongo.database import Database
 from dotenv import find_dotenv, load_dotenv
-from stages import summarize_article, categorize
+from stages import summarize_article, categorize, extra_research
 from logger import Logger
 from time import time, sleep
 from openai.error import InvalidRequestError, RateLimitError, AuthenticationError
@@ -259,6 +259,7 @@ class Analyzer:
             try:
                 data = json.loads(result[0])
                 if data:
+                    self.logger.log(f"Stage 2: {len(data)}")
                     with open(csv_filename, "a", encoding='utf-8') as file:
                         writer = csv.writer(file)
                         writer.writerow([category, primaries, secondaries, data])
@@ -300,7 +301,7 @@ class Analyzer:
                 if not row:
                     continue
                 category = row[0]
-                data = row[2]
+                data = row[3]
                 dictionary = eval(data)
                 data_list.append({"category": category, "data": dictionary})
 
@@ -309,6 +310,137 @@ class Analyzer:
 
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 2 - data saved from {csv_filename} into {collection} collection")
+
+    def stage_3(self, category_csv, summary_csv, csv_filename):
+        os.remove(csv_filename) if os.path.exists(csv_filename) else None
+        with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([
+                'category',
+                'topic',
+                'research'
+            ])
+        toprompts = []
+        summaries = []
+        self.logger.log(f"Stage 3 - Preparing article and topic datas")
+
+        with open(summary_csv, 'r', encoding='utf-8') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                summaries.append({
+                    "category": row[3],
+                    "title": row[2],
+                    "summary": row[4],
+                    "content": row[0],
+                })
+        total = 0
+        with open(category_csv, 'r', encoding='utf-8') as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                if not row:
+                    continue
+                category = row[0]
+                topics =  eval(row[3])
+                print(len(topics))
+                if len(topics) < 20:
+                    print(category, topics)
+                for topic in topics:
+                    total += 1
+                    primary = topic["Primary"]
+                    secondary = topic["Secondary"]
+                    articles = []
+                    for title in secondary:
+                        summary = ""
+                        content = ""
+                        for ele in summaries:
+                            if ele["title"] == title:
+                                summary = ele["summary"]
+                                content = ele["content"]
+                                break
+                        articles.append({
+                            "title": title,
+                            "summary": summary,
+                            "content": content,
+                        })
+                    if len(articles) == 0: continue
+                    toprompt = {
+                        "topic": primary,
+                        "category": category,
+                        "articles": articles,
+                    }
+                    toprompts.append(toprompt)
+        self.logger.log(f"Stage 3 - Prepared {len(toprompts)} article and topic data")
+        self.logger.log(f"Stage 3 - Start extra research...")
+        
+        researched_count = 0
+        total = len(toprompts)
+        start_t = time()
+        while len(toprompts) != 0:
+            pool = multiprocessing.Pool(processes=min(len(self.apikeys), 50))
+            results: list[ApplyResult] = []
+
+            for i, toprompt in enumerate(toprompts):
+                topic = toprompt["topic"]
+                category = toprompt["category"]
+                articles = toprompt["articles"]
+                api_key = self.apikeys[i % len(self.apikeys)]  # Use a different API key for each process
+                if len(self.apikeys) > len(toprompts):
+                    api_key = random.choice(self.apikeys)
+                results.append(pool.apply_async(stage_3_thread_handler, (api_key, category, topic, articles,)))
+            toprompts = []
+            with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                for result in results:
+                    article_data = result.get()
+                    if article_data[1] == 'APIKey_Error':
+                        api_key = article_data[0]
+                        self.log_invalid_key(api_key)
+                    elif article_data[1] == 'Error':
+                        print(f"Statge 3 - Error was occurred in extra research\n: {article_data[0]}")
+                    else:
+                        writer.writerow(article_data[0:-1])
+                        researched_count += 1
+                        self.logger.log(f"Statge 3 - {researched_count}/{total} - {api_key} : {article_data[-1]}")
+                        continue
+                    toprompt = {
+                        "topic": article_data[2],
+                        "category": article_data[3],
+                        "articles": article_data[4],
+                    }
+                    toprompts.append(toprompt)
+            pool.close()
+            pool.join()
+        end_t = time()
+        self.logger.log(f'Stage 3 - {researched_count} articles were extra researched in {end_t - start_t} seconds')
+
+    def stage_3_save_db(self, csv_filename: str, collection: str):
+        data_list = []
+        categories = set()
+        researches = []
+        with open(csv_filename, 'r') as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                if not row:
+                    continue
+                categories.add(row[0])
+                researches.append({
+                    "category": row[0],
+                    "topic": row[1],
+                    "research": row[2],
+                })
+        for category in categories:
+            data_list.append({
+                "category": category,
+                "data": [{
+                    "topic": item["topic"],
+                    "research": item["research"]
+                } for item in researches if item["category"] == category]
+            })
+        self.db[collection].drop()
+        new_collection = self.db[collection]
+        result = new_collection.insert_many(data_list)
+        self.logger.log(f"Stage 3 - data saved from {csv_filename} into {collection} collection")
 
 def stage_1_thread_handler(
         apikey: str,
@@ -390,3 +522,28 @@ def stage_1_thread_handler(
         # if 'Limit: 3 / min' in str(er) and 'Rate limit reached' in str(er):
         #     return stage_1_thread_handler(str, article, site_name, link)
         return [er, 'Error', article, site_name, link]
+
+def stage_3_thread_handler(
+        apikey: str,
+        category: str,
+        topic: str,
+        articles: list[str],
+    ):
+    try:
+        contents = [article['content'] for article in articles]
+        summary = extra_research(apikey, contents)
+        return [category, topic, eval(summary[0]), summary[1]]
+    except InvalidRequestError as er:
+        return [er, 'Error', category, topic, articles]
+    except RateLimitError as er:
+        print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
+        if er.error['type'] == 'insufficient_quota':
+            return [apikey, 'APIKey_Error', category, topic, articles]
+        elif er.error['code'] == 'rate_limit_exceeded':
+            return [er, 'Error', category, topic, articles]
+    except AuthenticationError as er:
+        return [apikey, 'APIKey_Error', category, topic, articles]
+    except Exception as er:
+        error = str(traceback.print_exc())
+        print(error)
+        return [er, 'Error', category, topic, articles]

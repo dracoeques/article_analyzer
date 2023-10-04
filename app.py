@@ -18,19 +18,34 @@ anal = Analyzer()
 #     error = str(traceback.print_exc())
 #     lg.log(f'Stage 1 - Error: {e},\n Error logs: {error}')
 
+# try:
+#     lg.log('Stage 2 - Started...')
+#     anal.stage_2('stage_1.csv', 'stage_2_day.csv', 'day')
+#     anal.stage_2('stage_1.csv', 'stage_2_week.csv', 'week')
+#     anal.stage_2('stage_1.csv', 'stage_2_month.csv', 'month')
+#     anal.stage_2_save_db('stage_2_day.csv', 'category_day')
+#     anal.stage_2_save_db('stage_2_week.csv', 'category_week')
+#     anal.stage_2_save_db('stage_2_month.csv', 'category_month')
+#     lg.log('Stage 2 - Successfully completed')
+# except Exception as e:
+#     error = str(traceback.print_exc())
+#     lg.log(f'Stage 2 - Error: {e},\n Error logs: {error}')
+
 try:
-    lg.log('Stage 2 - Started...')
-    anal.stage_2('stage_1.csv', 'stage_2_day.csv', 'day')
-    anal.stage_2('stage_1.csv', 'stage_2_week.csv', 'week')
-    anal.stage_2('stage_1.csv', 'stage_2_month.csv', 'month')
-    anal.stage_2_save_db('stage_2_day.csv', 'category_day')
-    anal.stage_2_save_db('stage_2_week.csv', 'category_week')
-    anal.stage_2_save_db('stage_2_month.csv', 'category_month')
-    lg.log('Stage 2 - Successfully completed')
+    lg.log('Stage 3 - Started...')
+    anal.stage_3('stage_2_day.csv', 'stage_1.csv', 'stage_3_day.csv')
+    anal.stage_3('stage_2_week.csv', 'stage_1.csv', 'stage_3_week.csv')
+    anal.stage_3('stage_2_month.csv', 'stage_1.csv', 'stage_3_month.csv')
+    anal.stage_3_save_db('stage_3_day.csv', "extra_research_day")
+    anal.stage_3_save_db('stage_3_week.csv', "extra_research_week")
+    anal.stage_3_save_db('stage_3_month.csv', "extra_research_month")
+    lg.log('Stage 3 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
-    lg.log(f'Stage 2 - Error: {e},\n Error logs: {error}')
-# with open('./text.txt', 'r', encoding='utf-8') as file:
-#     content = '\n'.join(file.readlines())
-#     t = json.loads(content)
-#     print(t)
+    lg.log(f'Stage 3 - Error: {e},\n Error logs: {error}')
+
+
+# # with open('./text.txt', 'r', encoding='utf-8') as file:
+# #     content = '\n'.join(file.readlines())
+# #     t = json.loads(content)
+# #     print(t)
