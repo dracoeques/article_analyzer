@@ -248,3 +248,74 @@ def deep_research(apikey: str, articles: list[dict[str:str]], background: dict):
         else:
             summary = map_reduce_chain.run(split_docs)
             return [summary, cb]
+
+def impactul_news(apikey: str, articles: list[dict]):
+    print(articles)
+    content = "\n".join([f"Title: {article['title']}\Summary: {article['summary']}" for article in articles])
+
+    original_prompt = load_prompt("./prompts/impactful-news.yaml")
+    full_template="""{{rules}}
+    Output must follow this format
+    Output must be in this format. This must be python dictinoary or json object
+    Don't include " in the middle of result sentences
+    ###Output Format###
+    [{"title": title, "explanation": Explanation}, {"title": title, "explanation": Explanation}, ... {"title": title, "explanation": Explanation}]
+    """
+    final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
+    input_prompts = [
+        ("rules", original_prompt),
+    ]
+    prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
+
+    encoding = tiktoken.encoding_for_model('gpt-3.5-turbo')
+    token_count = len(encoding.encode(prompt.format(articles='')))
+    chunk_size = int((16000 - token_count) * 0.75)
+    max_token = int((16000 - token_count) * 0.25)
+    text_splitter = TokenTextSplitter.from_tiktoken_encoder(
+        chunk_size=chunk_size, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
+    )
+    # Create Document object for the text
+    docs = [Document(page_content=content)]
+    split_docs = text_splitter.split_documents(docs)
+    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k', max_tokens=max_token)
+
+    # Map
+    map_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Run chain
+    reduce_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="articles", 
+        # reduce_k_below_max_tokens=True,
+    )
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=13333,
+    )
+
+    # Combining documents by mapping a chain over them, then combining results
+    map_reduce_chain = MapReduceDocumentsChain(
+        # Map chain
+        llm_chain=map_chain,
+        # Reduce chain
+        reduce_documents_chain=reduce_documents_chain,
+        # The variable name in the llm_chain to put the documents in
+        document_variable_name="articles",
+        # Return the results of the map steps in the output
+        return_intermediate_steps=False,
+    )
+
+    with get_openai_callback() as cb:
+        if len(split_docs) == 1:
+            summary = combine_documents_chain.run(split_docs)
+            return [summary, cb]
+        else:
+            summary = map_reduce_chain.run(split_docs)
+            return [summary, cb]

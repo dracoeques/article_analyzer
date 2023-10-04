@@ -5,7 +5,7 @@ from multiprocessing.pool import ApplyResult
 from pymongo import MongoClient
 from pymongo.database import Database
 from dotenv import find_dotenv, load_dotenv
-from stages import summarize_article, categorize, extra_research, deep_research
+from stages import summarize_article, categorize, extra_research, deep_research, impactul_news
 from logger import Logger
 from time import time, sleep
 from openai.error import InvalidRequestError, RateLimitError, AuthenticationError
@@ -278,16 +278,17 @@ class Analyzer:
         except AuthenticationError as er:
             self.log_invalid_key(apikey)
             self.logger.log(f"Stage 2: Invalid apikey: {apikey}")
-            self.stage_2_category(primaries, secondaries)
+            return self.stage_2_category(primaries, secondaries)
         except RateLimitError as er:
             print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
             if er.error['type'] == 'insufficient_quota':
                 self.logger.log(f"Stage 2: Invalid apikey: {apikey}")
-                self.stage_2_category(primaries, secondaries)
+                self.log_invalid_key(apikey)
+                return self.stage_2_category(primaries, secondaries)
             # elif er.error['type'] == 'requests' and er.error['code'] == 'rate_limit_exceeded':
             elif er.error['code'] == 'rate_limit_exceeded':
                 # check if remaining requests are not 0
-                self.stage_2_category(primaries, secondaries)
+                return self.stage_2_category(primaries, secondaries)
                 # if er.headers['x-ratelimit-remaining-requests'] == 0:
                 # else:
                 #     sleep(20)
@@ -547,6 +548,114 @@ class Analyzer:
         new_collection = self.db[collection]
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 4 - data saved from {csv_filename} into {collection} collection")
+    
+    def stage_5(self, stage1_csv, csv_filename, timeframe):
+        self.logger.log(f'Stage 5 - loading articles from {stage1_csv}')
+        articles = []
+        categories = set()
+        total = 0
+        start_t = time()
+        with open(stage1_csv, 'r', encoding='utf-8') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+
+            for row in csv_reader:
+                total += 1
+                try:
+                    if row[2] == '': continue
+                    if timeframe == 'day' and row[5] == '': continue
+                    if timeframe == 'week' and row[7] == '': continue
+                    if timeframe == 'month' and row[9] == '': continue
+                    score = 0
+                    if timeframe == 'day':
+                        score = int(remove_non_numbers_regex(row[5]))
+                    elif timeframe == 'week':
+                        score = int(remove_non_numbers_regex(row[7]))
+                    elif timeframe == 'month':
+                        score = int(remove_non_numbers_regex(row[9]))
+
+                    # article = row[0]
+                    title = row[2]
+                    category = row[3]  # Assuming the category is in the 4th column
+                    summary = row[4]
+                    categories.add(category)  # Add category to the set of unique categories
+
+                    if any(item['title'] == title for item in articles):
+                        continue
+                    articles.append({'title': title, 'score': score, 'category': category, 'summary': summary})
+                except IndexError as err:
+                    self.logger.log(f'Stage 2 - Error while loading articles: {err}')
+                    pass
+        end_t = time()
+        self.logger.log(f'Stage 5 - articles were loaded from {stage1_csv} in {end_t - start_t} second')
+        top30 = []
+        start_t = time()
+        for category in categories:
+            if category not in self.categories:
+                continue
+            category_articles = [article for article in articles if article['category'] == category]
+            sorted_articles = sorted(category_articles, key=lambda x: x['score'], reverse=True)
+            for tmp in sorted_articles[0:3]:
+                top30.append(tmp)
+        end_t = time()
+        self.logger.log(f'Stage 5 - articles were sorted in {end_t - start_t} second')
+        start_t = time()
+        result = []
+        try:
+            result = self.stage_5_impactful_news(top30)
+        except Exception as er:
+            error = str(traceback.print_exc())
+            self.logger.log(f"Stage 5: Error : {er} in {error}")
+        self.logger.log(f'Stage 5 - {result[1]}')
+        with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["no", "title", "explanation"])
+            print(result[0])
+            tops: list = eval(result[0])
+            print(tops)
+            for i, top in enumerate(tops):
+                writer.writerow([i+1, top['title'], top['explanation']])
+
+        end_t = time()
+        self.logger.log(f'Stage 5 - got the result in {end_t - start_t} second')
+    
+    def stage_5_impactful_news(self, articles):
+        apikey = random.choice(self.apikeys)
+        try:
+            result = impactul_news(apikey=apikey, articles=articles)
+            return result
+        except InvalidRequestError as er:
+            result = self.stage_5_impactful_news(articles)
+            return result
+        except AuthenticationError as er:
+            self.log_invalid_key(apikey)
+            self.logger.log(f"Stage 5: Invalid apikey: {apikey}")
+            return self.stage_5_impactful_news(articles)
+        except RateLimitError as er:
+            print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
+            if er.error['type'] == 'insufficient_quota':
+                self.logger.log(f"Stage 5: Invalid apikey: {apikey}")
+                self.log_invalid_key(apikey)
+                return self.stage_5_impactful_news(articles)
+            elif er.error['code'] == 'rate_limit_exceeded':
+                return self.stage_5_impactful_news(articles)
+    
+    def stage_5_save_db(self, csv_filename: str, collection: str):
+        data_list = []
+        with open(csv_filename, 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                if not row:
+                    continue
+                title = row[1]
+                explanation = row[2]
+                data_list.append({"title": title, "explanation": explanation})
+
+        self.db[collection].drop()
+        new_collection = self.db[collection]
+        result = new_collection.insert_many(data_list)
+        self.logger.log(f"Stage 5 - data saved from {csv_filename} into {collection} collection")
 
 def stage_1_thread_handler(
         apikey: str,

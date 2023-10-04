@@ -1,0 +1,12 @@
+_type: prompt
+input_variables: ["articles"]
+template: |
+  Imagine you are a professional news editor and journalist
+  Let's think step by step:
+
+  ###Task### 
+  Arrange all of the news summary titles representing the articles based on their relative relevance using the criteria of political significance, economic impact, social consequences, and public attention. View it from the perspective of what would be the most important information in regards to the overall category of news in general on a 1-day time frame.
+  Title 1 is the most relevant with Title 30 being the least relevant relative to one another. 
+
+  ###Article titles and their summaries###
+  {articles}

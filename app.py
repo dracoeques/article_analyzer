@@ -44,18 +44,33 @@ anal = Analyzer()
 #     error = str(traceback.print_exc())
 #     lg.log(f'Stage 3 - Error: {e},\n Error logs: {error}')
 
+# try:
+#     lg.log('Stage 4 - Started...')
+#     anal.stage_4('stage_3_day.csv', 'stage_4_day.csv')
+#     anal.stage_4_save_db('stage_4_day.csv', "deep_research_day")
+#     anal.stage_4('stage_3_week.csv', 'stage_4_week.csv')
+#     anal.stage_4_save_db('stage_4_week.csv', "deep_research_week")
+#     anal.stage_4('stage_3_month.csv', 'stage_4_month.csv')
+#     anal.stage_4_save_db('stage_4_month.csv', "deep_research_month")
+#     lg.log('Stage 4 - Successfully completed')
+# except Exception as e:
+#     error = str(traceback.print_exc())
+#     lg.log(f'Stage 4 - Error: {e},\n Error logs: {error}')
+
 try:
-    lg.log('Stage 4 - Started...')
-    # anal.stage_4('stage_3_day.csv', 'stage_4_day.csv')
-    # anal.stage_4_save_db('stage_4_day.csv', "deep_research_day")
-    # anal.stage_4('stage_3_week.csv', 'stage_4_week.csv')
-    anal.stage_4_save_db('stage_4_week.csv', "deep_research_week")
-    anal.stage_4('stage_3_month.csv', 'stage_4_month.csv')
+    lg.log('Stage 5 - Started...')
+    # anal.stage_5('stage_1.csv', 'stage_5_day.csv', 'day')
+    # anal.stage_5('stage_1.csv', 'stage_5_week.csv', 'week')
+    # anal.stage_5('stage_1.csv', 'stage_5_month.csv', 'month')
+    anal.stage_5_save_db('stage_5_day.csv', 'impactful-new-day')
+    anal.stage_5_save_db('stage_5_week.csv', 'impactful-new-week')
+    anal.stage_5_save_db('stage_5_month.csv', 'impactful-new-month')
+
     anal.stage_4_save_db('stage_4_month.csv', "deep_research_month")
-    lg.log('Stage 3 - Successfully completed')
+    lg.log('Stage 5 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
-    lg.log(f'Stage 3 - Error: {e},\n Error logs: {error}')
+    lg.log(f'Stage 5 - Error: {e},\n Error logs: {error}')
 
 
 # # with open('./text.txt', 'r', encoding='utf-8') as file:
