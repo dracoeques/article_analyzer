@@ -57,17 +57,28 @@ anal = Analyzer()
 #     error = str(traceback.print_exc())
 #     lg.log(f'Stage 4 - Error: {e},\n Error logs: {error}')
 
-try:
-    lg.log('Stage 5 - Started...')
-    # anal.stage_5('stage_1.csv', 'stage_5_day.csv', 'day')
-    # anal.stage_5('stage_1.csv', 'stage_5_week.csv', 'week')
-    # anal.stage_5('stage_1.csv', 'stage_5_month.csv', 'month')
-    anal.stage_5_save_db('stage_5_day.csv', 'impactful-new-day')
-    anal.stage_5_save_db('stage_5_week.csv', 'impactful-new-week')
-    anal.stage_5_save_db('stage_5_month.csv', 'impactful-new-month')
+# try:
+#     lg.log('Stage 5 - Started...')
+#     anal.stage_5('stage_1.csv', 'stage_5_day.csv', 'day')
+#     anal.stage_5('stage_1.csv', 'stage_5_week.csv', 'week')
+#     anal.stage_5('stage_1.csv', 'stage_5_month.csv', 'month')
+#     anal.stage_5_save_db('stage_5_day.csv', 'impactful-new-day')
+#     anal.stage_5_save_db('stage_5_week.csv', 'impactful-new-week')
+#     anal.stage_5_save_db('stage_5_month.csv', 'impactful-new-month')
+#     lg.log('Stage 5 - Successfully completed')
+# except Exception as e:
+#     error = str(traceback.print_exc())
+#     lg.log(f'Stage 5 - Error: {e},\n Error logs: {error}')
 
-    anal.stage_4_save_db('stage_4_month.csv', "deep_research_month")
-    lg.log('Stage 5 - Successfully completed')
+try:
+    lg.log('Stage 6 - Started...')
+    # anal.stage_6('stage_4_day.csv', 'stage_6_day.csv', 'day')
+    # anal.stage_6('stage_4_week.csv', 'stage_6_week.csv', 'week')
+    # anal.stage_6('stage_4_month.csv', 'stage_6_month.csv', 'month')
+    anal.stage_6_save_db('stage_6_day.csv', 'prediction-day')
+    anal.stage_6_save_db('stage_6_week.csv', 'prediction-week')
+    anal.stage_6_save_db('stage_6_month.csv', 'prediction-month')
+    lg.log('Stage 6 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
     lg.log(f'Stage 5 - Error: {e},\n Error logs: {error}')

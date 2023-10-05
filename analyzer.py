@@ -5,7 +5,7 @@ from multiprocessing.pool import ApplyResult
 from pymongo import MongoClient
 from pymongo.database import Database
 from dotenv import find_dotenv, load_dotenv
-from stages import summarize_article, categorize, extra_research, deep_research, impactul_news
+from stages import summarize_article, categorize, extra_research, deep_research, impactul_news, prediction
 from logger import Logger
 from time import time, sleep
 from openai.error import InvalidRequestError, RateLimitError, AuthenticationError
@@ -656,6 +656,101 @@ class Analyzer:
         new_collection = self.db[collection]
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 5 - data saved from {csv_filename} into {collection} collection")
+    
+    def stage_6(self, stage4_csv: str, csv_filename: str, timeframe: str):
+        self.logger.log(f'Stage 6 - loading topics from {stage4_csv}')
+        topics = []
+        data_list = []
+        categories = set()
+        start_t = time()
+        with open(stage4_csv, 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                if not row:
+                    continue
+                categories.add(row[0])
+                deep_research = eval(row[3])
+                topics.append({
+                    "category": row[0],
+                    "topic": row[1],
+                    "prediction": f"Description: {deep_research['1 day timeframe']['Most likely']['Description']}\nExplanation: {deep_research['1 day timeframe']['Most likely']['Explanation']}",
+                })
+        for category in categories:
+            if category not in self.categories:
+                continue
+            data_list.append({
+                "category": category,
+                "data": [{
+                    "topic": topic["topic"],
+                    "prediction": topic["prediction"]
+                } for topic in topics if topic["category"] == category]
+            })
+        data_list.append({
+            "category": "at_glance",
+            "data": [{
+                "topic": topic["topic"],
+                "prediction": topic["prediction"]
+            } for topic in topics]
+        })
+        end_t = time()
+        self.logger.log(f'Stage 6 - topics were loaded from {stage4_csv} in {end_t - start_t} second')
+        start_t = time()
+        results = []
+        try:
+            for i, data in enumerate(data_list):
+                result = self.stage_6_prediction(data, timeframe)
+                results.append([result[0], eval(result[1][0])])
+                self.logger.log(f'Stage 6 - {i+1}/{len(data_list)} - {result[1][1]}')
+        except Exception as er:
+            error = str(traceback.print_exc())
+            self.logger.log(f"Stage 6: Error : {er} in {error}")
+        with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["category", "prediction"])
+            for result in results:
+                writer.writerow(result)
+
+        end_t = time()
+        self.logger.log(f'Stage 6 - got the result in {end_t - start_t} second')
+
+    def stage_6_prediction(self, topics, timeframe):
+        apikey = random.choice(self.apikeys)
+        at_glance = False
+        if topics["category"] == "at_glance": at_glance = True
+        try:
+            result = prediction(apikey, topics["data"], at_glance, timeframe)
+            return [topics["category"], result]
+        except InvalidRequestError as er:
+            result = self.stage_6_prediction(topics, timeframe)
+            return result
+        except AuthenticationError as er:
+            self.log_invalid_key(apikey)
+            self.logger.log(f"Stage 6: Invalid apikey: {apikey}")
+            return self.stage_6_prediction(topics, timeframe)
+        except RateLimitError as er:
+            print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
+            if er.error['type'] == 'insufficient_quota':
+                self.logger.log(f"Stage 6: Invalid apikey: {apikey}")
+                self.log_invalid_key(apikey)
+                return self.stage_6_prediction(topics, timeframe)
+            elif er.error['code'] == 'rate_limit_exceeded':
+                return self.stage_6_prediction(topics, timeframe)
+    
+    def stage_6_save_db(self, csv_filename: str, collection: str):
+        data_list = []
+        with open(csv_filename, 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)
+            for row in csv_reader:
+                if not row:
+                    continue
+                data_list.append({"category": row[0], "prediction": eval(row[1])})
+
+        self.db[collection].drop()
+        new_collection = self.db[collection]
+        result = new_collection.insert_many(data_list)
+        self.logger.log(f"Stage 6 - data saved from {csv_filename} into {collection} collection")
 
 def stage_1_thread_handler(
         apikey: str,
