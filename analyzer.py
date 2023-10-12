@@ -13,6 +13,7 @@ import random
 from helpers import remove_non_numbers_regex
 import json
 import traceback
+from datetime import date
 
 # find and load .env file
 load_dotenv(find_dotenv())
@@ -183,9 +184,8 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 1 - loaded {len(data_list)} summaries in {end_t - start_t} seconds')
         self.logger.log(f'Stage 1 - saving summaries in db...')
-        start_t = time()
-        self.db["main_articles"].drop()
-        new_collection = self.db['main_articles']
+        new_collection = self.db['main_articles'][date.today().isoformat()]
+        new_collection.drop()
         result = new_collection.insert_many(data_list)
         print("Data inserted successfully. Inserted IDs:", result.inserted_ids)
         end_t = time()
@@ -306,8 +306,8 @@ class Analyzer:
                 dictionary = eval(data)
                 data_list.append({"category": category, "data": dictionary})
 
-        self.db[collection].drop()
-        new_collection = self.db[collection]
+        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection.drop()
 
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 2 - data saved from {csv_filename} into {collection} collection")
@@ -440,8 +440,8 @@ class Analyzer:
                     "research": item["research"]
                 } for item in researches if item["category"] == category]
             })
-        self.db[collection].drop()
-        new_collection = self.db[collection]
+        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 3 - data saved from {csv_filename} into {collection} collection")
     
@@ -544,8 +544,8 @@ class Analyzer:
                     "deep_research": item["deep_research"]
                 } for item in dresearches if item["category"] == category]
             })
-        self.db[collection].drop()
-        new_collection = self.db[collection]
+        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 4 - data saved from {csv_filename} into {collection} collection")
     
@@ -652,8 +652,8 @@ class Analyzer:
                 explanation = row[2]
                 data_list.append({"title": title, "explanation": explanation})
 
-        self.db[collection].drop()
-        new_collection = self.db[collection]
+        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 5 - data saved from {csv_filename} into {collection} collection")
     
@@ -747,8 +747,8 @@ class Analyzer:
                     continue
                 data_list.append({"category": row[0], "prediction": eval(row[1])})
 
-        self.db[collection].drop()
         new_collection = self.db[collection]
+        new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 6 - data saved from {csv_filename} into {collection} collection")
 
