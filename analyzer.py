@@ -144,7 +144,7 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 1 - {sumarized_count} articles were summarized in {end_t - start_t} seconds')
 
-    def stage_1_save_db(self, csv_filename):
+    def stage_1_save_db(self, csv_filename, curDate: str):
         self.logger.log(f'Stage 1 - loading summaries from {csv_filename}')
         start_t = time()
         data_list = []
@@ -184,7 +184,7 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 1 - loaded {len(data_list)} summaries in {end_t - start_t} seconds')
         self.logger.log(f'Stage 1 - saving summaries in db...')
-        new_collection = self.db['analyzed_articles'][date.today().isoformat()]
+        new_collection = self.db['analyzed_articles'][curDate]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         print("Data inserted successfully. Inserted IDs:", result.inserted_ids)
@@ -294,7 +294,7 @@ class Analyzer:
                 #     sleep(20)
                 #     return stage_1_thread_handler( apikey, article, site_name, link,)
     
-    def stage_2_save_db(self, csv_filename: str, collection: str):
+    def stage_2_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
         with open(csv_filename, 'r') as file:
             csv_reader = csv.reader(file)
@@ -306,7 +306,7 @@ class Analyzer:
                 dictionary = eval(data)
                 data_list.append({"category": category, "data": dictionary})
 
-        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection = self.db[collection][curDate]
         new_collection.drop()
 
         result = new_collection.insert_many(data_list)
@@ -416,7 +416,7 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 3 - {researched_count} articles were extra researched in {end_t - start_t} seconds')
 
-    def stage_3_save_db(self, csv_filename: str, collection: str):
+    def stage_3_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
         categories = set()
         researches = []
@@ -440,7 +440,7 @@ class Analyzer:
                     "research": item["research"]
                 } for item in researches if item["category"] == category]
             })
-        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection = self.db[collection][curDate]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 3 - data saved from {csv_filename} into {collection} collection")
@@ -519,7 +519,7 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 4 - {researched} articles were extra researched in {end_t - start_t} seconds')
     
-    def stage_4_save_db(self, csv_filename: str, collection: str):
+    def stage_4_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
         categories = set()
         dresearches = []
@@ -544,7 +544,7 @@ class Analyzer:
                     "deep_research": item["deep_research"]
                 } for item in dresearches if item["category"] == category]
             })
-        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection = self.db[collection][curDate]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 4 - data saved from {csv_filename} into {collection} collection")
@@ -640,7 +640,7 @@ class Analyzer:
             elif er.error['code'] == 'rate_limit_exceeded':
                 return self.stage_5_impactful_news(articles)
     
-    def stage_5_save_db(self, csv_filename: str, collection: str):
+    def stage_5_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
         with open(csv_filename, 'r') as file:
             csv_reader = csv.reader(file)
@@ -652,7 +652,7 @@ class Analyzer:
                 explanation = row[2]
                 data_list.append({"title": title, "explanation": explanation})
 
-        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection = self.db[collection][curDate]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 5 - data saved from {csv_filename} into {collection} collection")
@@ -737,7 +737,7 @@ class Analyzer:
             elif er.error['code'] == 'rate_limit_exceeded':
                 return self.stage_6_prediction(topics, timeframe)
     
-    def stage_6_save_db(self, csv_filename: str, collection: str):
+    def stage_6_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
         with open(csv_filename, 'r') as file:
             csv_reader = csv.reader(file)
@@ -747,7 +747,7 @@ class Analyzer:
                     continue
                 data_list.append({"category": row[0], "prediction": eval(row[1])})
 
-        new_collection = self.db[collection][date.today().isoformat()]
+        new_collection = self.db[collection][curDate]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 6 - data saved from {csv_filename} into {collection} collection")

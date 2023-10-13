@@ -1,6 +1,7 @@
 from analyzer import Analyzer
 import traceback
 from logger import Logger
+from datetime import datetime
 
 import random
 
@@ -31,6 +32,8 @@ anal = Analyzer()
 # anal.db["prediction-week"].drop()
 # anal.db["prediction-month"].drop()
 
+curDate = datetime.utcnow().date().isoformat()
+
 try:
     lg.log('Stage 1 - Started...')
     # anal.stage_1("result.csv")
@@ -45,9 +48,9 @@ try:
     # anal.stage_2('stage_1.csv', 'stage_2_day.csv', 'day')
     # anal.stage_2('stage_1.csv', 'stage_2_week.csv', 'week')
     # anal.stage_2('stage_1.csv', 'stage_2_month.csv', 'month')
-    anal.stage_2_save_db('stage_2_day.csv', 'category_day')
-    anal.stage_2_save_db('stage_2_week.csv', 'category_week')
-    anal.stage_2_save_db('stage_2_month.csv', 'category_month')
+    anal.stage_2_save_db('stage_2_day.csv', 'category_day', curDate=curDate)
+    anal.stage_2_save_db('stage_2_week.csv', 'category_week', curDate=curDate)
+    anal.stage_2_save_db('stage_2_month.csv', 'category_month', curDate=curDate)
     lg.log('Stage 2 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
@@ -58,9 +61,9 @@ try:
     # anal.stage_3('stage_2_day.csv', 'stage_1.csv', 'stage_3_day.csv')
     # anal.stage_3('stage_2_week.csv', 'stage_1.csv', 'stage_3_week.csv')
     # anal.stage_3('stage_2_month.csv', 'stage_1.csv', 'stage_3_month.csv')
-    anal.stage_3_save_db('stage_3_day.csv', "extra_research_day")
-    anal.stage_3_save_db('stage_3_week.csv', "extra_research_week")
-    anal.stage_3_save_db('stage_3_month.csv', "extra_research_month")
+    anal.stage_3_save_db('stage_3_day.csv', "extra_research_day", curDate=curDate)
+    anal.stage_3_save_db('stage_3_week.csv', "extra_research_week", curDate=curDate)
+    anal.stage_3_save_db('stage_3_month.csv', "extra_research_month", curDate=curDate)
     lg.log('Stage 3 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
@@ -69,11 +72,11 @@ except Exception as e:
 try:
     lg.log('Stage 4 - Started...')
     # anal.stage_4('stage_3_day.csv', 'stage_4_day.csv')
-    anal.stage_4_save_db('stage_4_day.csv', "deep_research_day")
+    anal.stage_4_save_db('stage_4_day.csv', "deep_research_day", curDate=curDate)
     # anal.stage_4('stage_3_week.csv', 'stage_4_week.csv')
-    anal.stage_4_save_db('stage_4_week.csv', "deep_research_week")
+    anal.stage_4_save_db('stage_4_week.csv', "deep_research_week", curDate=curDate)
     # anal.stage_4('stage_3_month.csv', 'stage_4_month.csv')
-    anal.stage_4_save_db('stage_4_month.csv', "deep_research_month")
+    anal.stage_4_save_db('stage_4_month.csv', "deep_research_month", curDate=curDate)
     lg.log('Stage 4 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
@@ -84,9 +87,9 @@ try:
     # anal.stage_5('stage_1.csv', 'stage_5_day.csv', 'day')
     # anal.stage_5('stage_1.csv', 'stage_5_week.csv', 'week')
     # anal.stage_5('stage_1.csv', 'stage_5_month.csv', 'month')
-    anal.stage_5_save_db('stage_5_day.csv', 'impactful-new-day')
-    anal.stage_5_save_db('stage_5_week.csv', 'impactful-new-week')
-    anal.stage_5_save_db('stage_5_month.csv', 'impactful-new-month')
+    anal.stage_5_save_db('stage_5_day.csv', 'impactful-new-day', curDate=curDate)
+    anal.stage_5_save_db('stage_5_week.csv', 'impactful-new-week', curDate=curDate)
+    anal.stage_5_save_db('stage_5_month.csv', 'impactful-new-month', curDate=curDate)
     lg.log('Stage 5 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
@@ -97,9 +100,9 @@ try:
     # anal.stage_6('stage_4_day.csv', 'stage_6_day.csv', 'day')
     # anal.stage_6('stage_4_week.csv', 'stage_6_week.csv', 'week')
     # anal.stage_6('stage_4_month.csv', 'stage_6_month.csv', 'month')
-    anal.stage_6_save_db('stage_6_day.csv', 'prediction-day')
-    anal.stage_6_save_db('stage_6_week.csv', 'prediction-week')
-    anal.stage_6_save_db('stage_6_month.csv', 'prediction-month')
+    anal.stage_6_save_db('stage_6_day.csv', 'prediction-day', curDate=curDate)
+    anal.stage_6_save_db('stage_6_week.csv', 'prediction-week', curDate=curDate)
+    anal.stage_6_save_db('stage_6_month.csv', 'prediction-month', curDate=curDate)
     lg.log('Stage 6 - Successfully completed')
 except Exception as e:
     error = str(traceback.print_exc())
