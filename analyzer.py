@@ -184,7 +184,7 @@ class Analyzer:
         end_t = time()
         self.logger.log(f'Stage 1 - loaded {len(data_list)} summaries in {end_t - start_t} seconds')
         self.logger.log(f'Stage 1 - saving summaries in db...')
-        new_collection = self.db['main_articles'][date.today().isoformat()]
+        new_collection = self.db['analyzed_articles'][date.today().isoformat()]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         print("Data inserted successfully. Inserted IDs:", result.inserted_ids)
@@ -747,7 +747,7 @@ class Analyzer:
                     continue
                 data_list.append({"category": row[0], "prediction": eval(row[1])})
 
-        new_collection = self.db[collection]
+        new_collection = self.db[collection][date.today().isoformat()]
         new_collection.drop()
         result = new_collection.insert_many(data_list)
         self.logger.log(f"Stage 6 - data saved from {csv_filename} into {collection} collection")
