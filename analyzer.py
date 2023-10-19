@@ -72,7 +72,7 @@ class Analyzer:
             with open('keys/invalid_keys.txt', 'a') as invalid_file:
                 invalid_file.write(apikey + '\n')
 
-    def stage_1(self, csv_filename):
+    def stage_1(self, csv_filename: str, curDate: str):
         os.remove(csv_filename) if os.path.exists(csv_filename) else None
 
         start_t = time()
@@ -82,7 +82,7 @@ class Analyzer:
         article_count = 0
 
         for category in collection_name:
-            collection = self.db[category]
+            collection = self.db[category][curDate]
             documents = collection.find()
             for document in documents:
                 article_count += 1
