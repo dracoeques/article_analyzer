@@ -36,7 +36,7 @@ curDate = datetime.utcnow().date().isoformat()
 
 try:
     lg.log('Stage 1 - Started...')
-    anal.stage_1("result.csv", curDate)
+    # anal.stage_1("result.csv", curDate)
     anal.stage_1_save_db("stage_1.csv", curDate=curDate)
     lg.log('Stage 1 - Successfully completed')
 except Exception as e:
