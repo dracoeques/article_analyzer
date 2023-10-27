@@ -31,6 +31,7 @@ class Analyzer:
         self.logger = Logger()
         self.session = MongoClient(os.environ["MONGODB_URL"])
         self.db = self.session["news-test"]
+        self.article_db = self.session["test"]
         self.collections = {
             0: "All categories",
             1: "lawandcrimes",
@@ -82,7 +83,7 @@ class Analyzer:
         article_count = 0
 
         for category in collection_name:
-            collection = self.db[category][curDate]
+            collection = self.article_db[category][curDate]
             documents = collection.find()
             for document in documents:
                 article_count += 1
