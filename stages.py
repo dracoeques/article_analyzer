@@ -110,26 +110,35 @@ def categorize(apikey: str, primaries: list[str], secondaries: list[str]):
 
 def extra_research(apikey: str, articles: list[str]):
     content = "\n".join(articles)
-    text_splitter = TokenTextSplitter.from_tiktoken_encoder(
-        chunk_size=10000, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
-    )
-    # Create Document object for the text
-    docs = [Document(page_content=content)]
-    split_docs = text_splitter.split_documents(docs)
-    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k', max_tokens=3696)
 
     original_prompt = load_prompt("./prompts/extra-research.yaml")
     full_template="""{{rules}}
+    Please adhere to the following structure for your examination
     Output must be in this format. This must be python dictinoary or json object
     ###Output Format###
-    {"Introduction": "An opening section that provides an overview of the topic and sets the context for the rest of the content.", "Historical Perspective": "A section that explores the past events, developments, or context relevant to the subject matter.", "People/entities Involved": "An exploration of the individuals or organizations that play a significant role in the topic.", "Motivations": "An analysis of the reasons, factors, or driving forces behind certain actions or decisions related to the topic.", "Recent Developments": "An examination of the most recent updates, advancements, or changes related to the subject.", "Impact": "An assessment of the consequences, effects, or influence the topic has on individuals, society, or other aspects.", "Examples from recent history": "Specific instances or cases from recent times that illustrate and support the topic under discussion.", "Conclusion": "A closing section that summarizes the main points and findings and may offer insights or suggestions for the future."}
+    {"Introduction": "Summarize the articles' topic and content briefly. Highlight the key issues or events to be analyzed.", "Historical Context": "Discuss the events' history. Identify crucial factors, background details, and significant precedents relevant to the situation.", "Key Players": "Identify the primary individuals or organizations involved in the events. Explore their roles and their effects on the events.", "Underlying Motivations": "Examine the driving forces behind the actions in the articles. Dig into the goals, interests, or ideologies of the engaged parties, supporting your analysis with solid evidence or credible theories.", "Recent Developments": "Address any fresh updates or happenings related to the events.", "Impact": "Evaluate the immediate and long-term consequences of the events.", "Future Challenges": "Identify potential challenges that may arise from these events. Discuss potential implications and strategies to tackle them.", "Historical Comparisons": "Provide three instances from recent history that resonate with the events in the articles. Analyze each example, emphasizing similarities, differences, and lessons gleaned.", "Conclusion": "Wrap up your analysis by encapsulating the key findings or insights. Propose areas for further research, if applicable."}
 
     """
     final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
     input_prompts = [
         ("rules", original_prompt),
     ]
+
     prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
+
+    encoding = tiktoken.encoding_for_model('gpt-3.5-turbo')
+    token_count = len(encoding.encode(prompt.format(articles='')))
+    chunk_size = int((16000 - token_count) * 0.75)
+    max_token = int((16000 - token_count) * 0.25)
+
+    text_splitter = TokenTextSplitter.from_tiktoken_encoder(
+        chunk_size=chunk_size, chunk_overlap=0, model_name='gpt-3.5-turbo-16k',
+    )
+    # Create Document object for the text
+    docs = [Document(page_content=content)]
+    split_docs = text_splitter.split_documents(docs)
+    llm = ChatOpenAI(temperature=0, openai_api_key=apikey, model = 'gpt-3.5-turbo-16k', max_tokens=max_token)
+
 
     # Map
     map_chain = LLMChain(llm=llm, prompt=prompt)
@@ -319,53 +328,35 @@ def impactul_news(apikey: str, articles: list[dict]):
             summary = map_reduce_chain.run(split_docs)
             return [summary, cb]
 
-def prediction(apikey: str, topics: list[dict], at_glance: bool, timeframe: str):
+def prediction(apikey: str, topics: list[dict], category: str, timeframe: str):
     content = "\n".join([f"topic: {topic['topic']}\nprediction: {topic['prediction']}" for topic in topics])
 
-    original_prompt = load_prompt("./prompts/prediction.yaml")
-    time = '24 hours'
-    condition = "on a 1-day time frame"    
+    main_prompt = load_prompt("./prompts/prediction.yaml")
+    time = "on a 1-day time frame"    
     if timeframe == 'week':
-        time = 'one week'
+        time = 'on a 1-week time frame'
     if timeframe == 'month':
-        time = 'one month'
+        time = 'on a 1-month time frame'
 
-    if at_glance:
-        original_prompt = load_prompt("./prompts/prediction_at_glance.yaml")
-        condition = "in general"    
-
-    main_template = f"""Ya the prompt for stage 6 should be this one:
-    Imagine you are a professional news analyst and journalist
-
-    ###Task###
-    Let's think step by step.
-
-    Describe what you believe to be the next biggest development or emerging trend in the science and technology category of the news based on the predictions and summaries to the most relevant news topics {condition}.
-
-    Your analysis should be based on current trends, ongoing research, industry news, or any other relevant information sources.
-
-    ###Goal###
-    Think of it as what to look out for in the coming days. A convergence of what will happen from the summaries, all of the topics, and most likely predictions in the next {time}. use information from all of the topics to justify your reasoning"""
-    main_prompt = PromptTemplate.from_template(main_template, template_format="jinja2")
     full_template="""
     {{main}}
-    {{rules}}
     #######
     Output must follow this format
     Output must be in this format. This must be python dictinoary or json object
     Don't include " in the middle of result sentences
+    The output for Explanation should explain how the developing trend came to be as well as describe in detail the potential connections, ripple effects, etc of the developing trend
+
     ###Output Format###
     {"Developing Trend 1": Developing_Trend_1, "Explanation": Explanation, "Opportunities that may arise": Opportunities_that_may_arise, "Potential Pitfalls": Potential_Pitfalls}}
     """
     final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
     input_prompts = [
         ("main", main_prompt),
-        ("rules", original_prompt),
     ]
     prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
 
     encoding = tiktoken.encoding_for_model('gpt-3.5-turbo')
-    token_count = len(encoding.encode(prompt.format(topics='')))
+    token_count = len(encoding.encode(prompt.format(topics='', category=category, timeframe=time)))
     chunk_size = int((16000 - token_count) * 0.75)
     max_token = int((16000 - token_count) * 0.25)
     text_splitter = TokenTextSplitter.from_tiktoken_encoder(

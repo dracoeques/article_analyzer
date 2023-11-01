@@ -1,18 +1,17 @@
 _type: prompt
-input_variables: ["topics"]
+input_variables: ["topics", "category", "timeframe"]
 template: |
-  Ya the prompt for stage 6 should be this one:
   Imagine you are a professional news analyst and journalist
 
   ###Task###
   Let's think step by step.
 
-  Describe what you believe to be the next biggest development or emerging trend in the science and technology category of the news based on the predictions and summaries to the most relevant news topics on a 1-day time frame.
+  Describe what you believe to be the next biggest development or emerging trend in the {category} category of the news based on the predictions and summaries to the most relevant news topics {time}.
 
-  Your analysis should be based on current trends, ongoing research, industry news, or any other relevant information sources.
+  Help to paint the idea of similarities between the different events described in the input when formulating the output.
 
   ###Goal###
-  Think of it as what to look out for in the coming days. A convergence of what will happen from the summaries, all of the topics, and most likely predictions in the next 24 hours. use information from all of the topics to justify your reasoning
-
+  Provide an idea of what is similar amongst all of the happenings in the Politics category of news.
+  
   ###Topics and their predictions###
   {topics}

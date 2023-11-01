@@ -1,33 +1,17 @@
 _type: prompt
 input_variables: ["articles"]
 template: |
-  Imagine you are a professional global risk analyst and geopolitical analyst
-  Let's think step by step:
+  As a geopolitical risk analysis expert who can predict the future, your task is to analyze given article summaries, background details, and context to forecast potential global scenarios that could arise within the next 24 hours. Your predictions should be based on the principle of causality and should draw on parallels from similar historical events. Ignore current affairs and consider the provided information as a standalone case.
 
-  ###Task###
-  Based on the article summaries, the additional context and background info, similar historical events, and the presumption that this information exists in a vacuum irrespective of current events, what do you think will happen due to cause and effect from a global perspective for the 1 day timeframe?
+  Your forecast should include predicting outcomes, explaining their potential impacts, and classifying your predictions based on their likelihood. Here's how to structure your forecast:
 
-  ###Instructions###
-  Let's think step by step. Imagine you are a professional global affairs analyst.
-  Draw conclusions based on the information within these news articles, the additional context and background info, and similar historical events would interconnect and lead to new insights. emphasis should be placed on weaving the knowledge of all of the articles together. Provide specific conclusions as to what might occur
+  1. The most likely (90% or more likelihood): Provide an in-depth justification for these scenarios.
+  2. The possible (50% or more likelihood): Detail the reasoning that supports these potential events.
+  3. The Unlikely (10% or more likelihood): Describe the factors that could lead to these less probable scenarios.
 
-  ###Explanation of Format###
-  For the time frame construct your output as such.
-  Split it apart into 3 different categories of outcomes and how it would affect each time frame:
+  You should form a comprehensive understanding of potential global events based on the insights from the given articles. Your explanations should be specific and detailed, backed by the resources provided.
 
-  1. The most likely:
-  This would include outcomes you believe will occur at least 90% of the time. Write your reasoning as to why you think this is the case.
-
-  2. The possible:
-  This would include outcomes you believe will occur at least 50% of the time. Write your reasoning as to why you think this is the case.
-
-  3. The Unlikely:
-  This would include outcomes you believe will occur at least 10% of the time. Write your reasoning as to why you think this is the case.
-
-  Be as specific and thorough as possible trying to interconnect the different articles to come up with a cohesive picture of what will happen as a result.
-
-  ###Goal###
-  The aim is to arrive at a deeper understanding of what might occur in each timeframe due to the input article summaries and the rest of the information provided.
-
+  Leverage the articles, background details, and context provided to study the potential scenarios that could transpire within a day.
+  
   ###Articles###
   {articles}

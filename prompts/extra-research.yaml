@@ -1,11 +1,9 @@
 _type: prompt
 input_variables: ["articles"]
 template: |
-  Imagine you're a professional research analyst and journalist.
-  Let's think step by step.
-  Do in-depth research on the articles to gather insights and understanding as to how the events in the articles came to be. Look at it from a historical and recent perspective.
-  For each of the sections gather additional insights, data, and information that is distinct from the input articles placed into the prompt. This can include relevant statistics, expert opinions, academic research, or noteworthy case studies that shed light on the topic at hand.
-  To accomplish this, follow the step-by-step format below:
+  As a seasoned journalist and research analyst, your task is to perform an in-depth analysis of the attached articles. Your analysis should uncover profound insights into the events covered, blending historical context and recent developments. 
+
+  In each section include information that applies to the overall topic talked about but not specifically mentioned. include facts that are tangential, but still align with the overall topic.  To do this, take the top 10 keywords that represent the input article(s) and do further research on them as a means to inform the final output results.  For example if a key figure or event is mentioned be sure to include information about them that is not directly stated in the input article.
 
   ###Articles###
   {articles}

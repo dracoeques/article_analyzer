@@ -717,10 +717,8 @@ class Analyzer:
 
     def stage_6_prediction(self, topics, timeframe):
         apikey = random.choice(self.apikeys)
-        at_glance = False
-        if topics["category"] == "at_glance": at_glance = True
         try:
-            result = prediction(apikey, topics["data"], at_glance, timeframe)
+            result = prediction(apikey, topics["data"], topics["category"], timeframe)
             return [topics["category"], result]
         except InvalidRequestError as er:
             result = self.stage_6_prediction(topics, timeframe)
