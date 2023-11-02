@@ -34,16 +34,16 @@ class Analyzer:
         self.article_db = self.session["test"]
         self.collections = {
             0: "All categories",
-            1: "lawandcrimes",
+            1: "lawandcrime",
             2: "web3",
-            3: "entertainments",
-            4: "sports",
-            5: "artandfashions",
-            6: "bizandfinances",
+            3: "entertainment",
+            4: "sport",
+            5: "artandfashion",
+            6: "bizandfinance",
             7: "politics",
-            8: "scienceandteches",
-            9: "lifestyleandhealths",
-            10: "gamings"
+            8: "scienceandteche",
+            9: "lifestyleandhealth",
+            10: "gaming"
         }
         self.categories = [
             "Politics",
