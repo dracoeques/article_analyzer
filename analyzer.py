@@ -113,6 +113,7 @@ class Analyzer:
                 'site_name',
                 'link'
             ])
+            csvfile.close()
         sumarized_count = 0
         total = len(articles)
         while len(articles) != 0:
