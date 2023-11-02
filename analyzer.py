@@ -242,11 +242,11 @@ class Analyzer:
 
             primaries = []
             for title in sorted_titles[0:20]:
-                if title['title'] != '':
+                if title['title'] != '' and title['title'] not in primaries:
                     primaries.append(title['title'])
             secondaries = []
             for title in sorted_titles[20:270]:
-                if title['title'] != '':
+                if title['title'] != '' and title['title'] not in primaries and title['title'] not in secondaries:
                     secondaries.append(title['title'])
 
             result = []
