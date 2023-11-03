@@ -109,8 +109,5 @@ def main():
         error = str(traceback.print_exc())
         lg.log(f'Stage 5 - Error: {e},\n Error logs: {error}')
 
-main()
-# # with open('./text.txt', 'r', encoding='utf-8') as file:
-# #     content = '\n'.join(file.readlines())
-# #     t = json.loads(content)
-# #     print(t)
+if __name__ == "__main__":
+    main()
