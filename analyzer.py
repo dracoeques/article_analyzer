@@ -18,6 +18,8 @@ from datetime import date
 # find and load .env file
 load_dotenv(find_dotenv())
 
+csv.field_size_limit(50000000)
+
 class Analyzer:
     """Article analyzer using Langchain and GPT"""
     session: MongoClient
