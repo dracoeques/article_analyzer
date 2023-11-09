@@ -20,6 +20,8 @@ template: |
   Plz follow the output format restrictly
   Do not use primary titles as secondary titles
 
+  This must be python dictinoary or json object
+
   ###Output Format to follow###
   {example}
 

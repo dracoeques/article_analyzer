@@ -844,7 +844,7 @@ def stage_3_thread_handler(
     try:
         contents = [article['content'] for article in articles]
         summary = extra_research(apikey, contents)
-        return [category, topic, eval(summary[0]), articles,  summary[1]]
+        return [category, topic, json.loads(summary[0].replace("\n", " ")), articles,  summary[1]]
     except InvalidRequestError as er:
         return [er, 'Error', category, topic, articles]
     except RateLimitError as er:

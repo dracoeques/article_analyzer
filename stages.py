@@ -115,6 +115,9 @@ def extra_research(apikey: str, articles: list[str]):
     full_template="""{{rules}}
     Please adhere to the following structure for your examination
     Output must be in this format. This must be python dictinoary or json object
+    Don't include " in the middle of result sentences in the output
+    Don't include ' in the middle of result sentences in the output
+    Don't include line breaking character (new line character) in the middle of result sentences in the output
     ###Output Format###
     {"Introduction": "Summarize the articles' topic and content briefly. Highlight the key issues or events to be analyzed.", "Historical Context": "Discuss the events' history. Identify crucial factors, background details, and significant precedents relevant to the situation.", "Key Players": "Identify the primary individuals or organizations involved in the events. Explore their roles and their effects on the events.", "Underlying Motivations": "Examine the driving forces behind the actions in the articles. Dig into the goals, interests, or ideologies of the engaged parties, supporting your analysis with solid evidence or credible theories.", "Recent Developments": "Address any fresh updates or happenings related to the events.", "Impact": "Evaluate the immediate and long-term consequences of the events.", "Future Challenges": "Identify potential challenges that may arise from these events. Discuss potential implications and strategies to tackle them.", "Historical Comparisons": "Provide three instances from recent history that resonate with the events in the articles. Analyze each example, emphasizing similarities, differences, and lessons gleaned.", "Conclusion": "Wrap up your analysis by encapsulating the key findings or insights. Propose areas for further research, if applicable."}
 
@@ -189,8 +192,10 @@ def deep_research(apikey: str, articles: list[dict[str:str]], background: dict):
     original_prompt = load_prompt("./prompts/deep-research.yaml")
     full_template="""{{rules}}
     Output must follow this format
-    Output must be in this format. This must be python dictinoary or json object
-    Don't include " in the middle of result sentences
+    Output must be in this format.
+    Don't include " in the middle of result sentences in output
+    Output format must follow this format
+    Output must be json object
     ###Output Format###
     {"1 day timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}, "1 week timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}, "1 month timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}}
 

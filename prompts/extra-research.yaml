@@ -1,7 +1,7 @@
 _type: prompt
 input_variables: ["articles"]
 template: |
-  As a seasoned journalist and research analyst, your task is to perform an in-depth analysis of the attached articles. Your analysis should uncover profound insights into the events covered, blending historical context and recent developments. 
+  You are a json object generator which research analyst, your task is to perform an in-depth analysis of the attached articles. Your analysis should uncover profound insights into the events covered, blending historical context and recent developments. 
 
   In each section include information that applies to the overall topic talked about but not specifically mentioned. include facts that are tangential, but still align with the overall topic.  To do this, take the top 10 keywords that represent the input article(s) and do further research on them as a means to inform the final output results.  For example if a key figure or event is mentioned be sure to include information about them that is not directly stated in the input article.
 
