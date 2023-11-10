@@ -59,7 +59,7 @@ class Analyzer:
             "Lifestyle and Health",
             "Art and Fashion",
         ]
-        with open('keys/keys.txt', 'r') as keys_file:
+        with open('keys/keys.txt', 'r', encoding='utf-8') as keys_file:
             # Maximum 50 processes
             self.apikeys = [line.strip() for line in keys_file.readlines()[:50]]
     
@@ -67,12 +67,12 @@ class Analyzer:
         # remove invallid apikey from valid list
         if apikey in self.apikeys:
             self.apikeys.remove(apikey)
-            with open('keys/keys.txt', 'w') as keys_file:
+            with open('keys/keys.txt', 'w', encoding='utf-8') as keys_file:
                 for key in self.apikeys:
                     keys_file.write(key + '\n')
 
             # add apikey to invalid key file
-            with open('keys/invalid_keys.txt', 'a') as invalid_file:
+            with open('keys/invalid_keys.txt', 'a', encoding='utf-8') as invalid_file:
                 invalid_file.write(apikey + '\n')
 
     def stage_1(self, csv_filename: str, curDate: str):
@@ -300,7 +300,7 @@ class Analyzer:
     
     def stage_2_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
-        with open(csv_filename, 'r') as file:
+        with open(csv_filename, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 if not row:
@@ -424,7 +424,7 @@ class Analyzer:
         data_list = []
         categories = set()
         researches = []
-        with open(csv_filename, 'r') as file:
+        with open(csv_filename, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)
             for row in csv_reader:
@@ -465,7 +465,7 @@ class Analyzer:
         categories = set()
         start_t = time()
         self.logger.log(f"Stage 4 - Loading data from {stage3_csv}...")
-        with open(stage3_csv, 'r') as file:
+        with open(stage3_csv, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)
             for row in csv_reader:
@@ -527,7 +527,7 @@ class Analyzer:
         data_list = []
         categories = set()
         dresearches = []
-        with open(csv_filename, 'r') as file:
+        with open(csv_filename, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)
             for row in csv_reader:
@@ -646,7 +646,7 @@ class Analyzer:
     
     def stage_5_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
-        with open(csv_filename, 'r') as file:
+        with open(csv_filename, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)
             for row in csv_reader:
@@ -667,7 +667,7 @@ class Analyzer:
         data_list = []
         categories = set()
         start_t = time()
-        with open(stage4_csv, 'r') as file:
+        with open(stage4_csv, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)
             for row in csv_reader:
@@ -741,7 +741,7 @@ class Analyzer:
     
     def stage_6_save_db(self, csv_filename: str, collection: str, curDate: str):
         data_list = []
-        with open(csv_filename, 'r') as file:
+        with open(csv_filename, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             next(csv_reader)
             for row in csv_reader:
