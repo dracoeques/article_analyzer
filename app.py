@@ -35,27 +35,27 @@ anal = Analyzer()
 curDate = datetime.utcnow().date().isoformat()
 
 def main():
-    # try:
-    #     lg.log('Stage 1 - Started...')
-    #     anal.stage_1("stage_1.csv", curDate)
-    #     anal.stage_1_save_db("stage_1.csv", curDate=curDate)
-    #     lg.log('Stage 1 - Successfully completed')
-    # except Exception as e:
-    #     error = str(traceback.print_exc())
-    #     lg.log(f'Stage 1 - Error: {e},\n Error logs: {error}')
+    try:
+        lg.log('Stage 1 - Started...')
+        anal.stage_1("stage_1.csv", curDate)
+        anal.stage_1_save_db("stage_1.csv", curDate=curDate)
+        lg.log('Stage 1 - Successfully completed')
+    except Exception as e:
+        error = str(traceback.print_exc())
+        lg.log(f'Stage 1 - Error: {e},\n Error logs: {error}')
 
-    # try:
-    #     lg.log('Stage 2 - Started...')
-    #     anal.stage_2('stage_1.csv', 'stage_2_day.csv', 'day')
-    #     anal.stage_2('stage_1.csv', 'stage_2_week.csv', 'week')
-    #     anal.stage_2('stage_1.csv', 'stage_2_month.csv', 'month')
-    #     anal.stage_2_save_db('stage_2_day.csv', 'category_day', curDate=curDate)
-    #     anal.stage_2_save_db('stage_2_week.csv', 'category_week', curDate=curDate)
-    #     anal.stage_2_save_db('stage_2_month.csv', 'category_month', curDate=curDate)
-    #     lg.log('Stage 2 - Successfully completed')
-    # except Exception as e:
-    #     error = str(traceback.print_exc())
-    #     lg.log(f'Stage 2 - Error: {e},\n Error logs: {error}')
+    try:
+        lg.log('Stage 2 - Started...')
+        anal.stage_2('stage_1.csv', 'stage_2_day.csv', 'day')
+        anal.stage_2('stage_1.csv', 'stage_2_week.csv', 'week')
+        anal.stage_2('stage_1.csv', 'stage_2_month.csv', 'month')
+        anal.stage_2_save_db('stage_2_day.csv', 'category_day', curDate=curDate)
+        anal.stage_2_save_db('stage_2_week.csv', 'category_week', curDate=curDate)
+        anal.stage_2_save_db('stage_2_month.csv', 'category_month', curDate=curDate)
+        lg.log('Stage 2 - Successfully completed')
+    except Exception as e:
+        error = str(traceback.print_exc())
+        lg.log(f'Stage 2 - Error: {e},\n Error logs: {error}')
 
     try:
         lg.log('Stage 3 - Started...')
