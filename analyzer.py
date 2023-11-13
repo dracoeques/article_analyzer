@@ -48,16 +48,16 @@ class Analyzer:
             10: "gaming"
         }
         self.categories = [
-            "Politics",
-            "Business and Finance",
-            "Entertainment",
-            "Science and Technology",
-            "Sports",
-            "Crypto/Web3",
-            "Gaming",
             "Law and Crime",
-            "Lifestyle and Health",
+            "Crypto/Web3",
+            "Entertainment",
+            "Sports",
             "Art and Fashion",
+            "Business and Finance",
+            "Politics",
+            "Science and Technology",
+            "Lifestyle and Health",
+            "Gaming",
         ]
         with open('keys/keys.txt', 'r', encoding='utf-8') as keys_file:
             # Maximum 50 processes
@@ -84,13 +84,14 @@ class Analyzer:
         articles = []
         article_count = 0
 
-        for category in collection_name:
+        for idx, category in enumerate(collection_name):
             collection = self.article_db[category][curDate]
+            rcategory = self.categories[idx]
             documents = collection.find()
             for document in documents:
                 article_count += 1
-                print(f"{article_count} : {category}: {document['siteName']}, {document['link']}")
-                articles.append([document['article'], document['siteName'], document['link']])
+                print(f"{article_count} : {rcategory}: {document['siteName']}, {document['link']}")
+                articles.append([document['article'], document['siteName'], document['link'], rcategory])
         end_t = time()
         
         self.logger.log(f'Stage 1 - {len(articles)} articles uploaded in {end_t - start_t} seconds, start processing...')
@@ -122,11 +123,11 @@ class Analyzer:
             pool = multiprocessing.Pool(processes=min(len(self.apikeys), 50))
             results: list[ApplyResult] = []
 
-            for i, (article, site_name, link) in enumerate(articles):
+            for i, (article, site_name, link, rCategory) in enumerate(articles):
                 api_key = self.apikeys[i % len(self.apikeys)]  # Use a different API key for each process
                 if len(self.apikeys) > len(articles):
                     api_key = random.choice(self.apikeys)
-                results.append(pool.apply_async(stage_1_thread_handler, (api_key, article, site_name, link,)))
+                results.append(pool.apply_async(stage_1_thread_handler, (api_key, article, site_name, link, rCategory)))
             articles = []
             with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
                 writer = csv.writer(csvfile)
@@ -506,7 +507,8 @@ class Analyzer:
                         api_key = article_data[0]
                         self.log_invalid_key(api_key)
                     elif article_data[1] == 'Error':
-                        print(f"Statge 3 - Error was occurred in extra research\n: {article_data[0]}")
+                        print(f"Statge 4 - Error was occurred in deep research\n: {article_data[0]}")
+                        continue
                     else:
                         writer.writerow([article_data[0], article_data[1], article_data[2], article_data[3], str(article_data[4])])
                         researched += 1
@@ -759,6 +761,7 @@ def stage_1_thread_handler(
         article: str,
         site_name: str,
         link: str,
+        rCategory: str,
     ):
     items = [
         'Title:',
@@ -774,7 +777,7 @@ def stage_1_thread_handler(
 
     item_dict = {
         'Title:': None,
-        'Category:': None,
+        'Category:': rCategory,
         'Summary:': None,
         'Importance 1 day:': None,
         'Reasoning for 1 day score:': None,
@@ -796,7 +799,7 @@ def stage_1_thread_handler(
             article,
             summary[0],
             item_dict['Title:'],
-            item_dict['Category:'],
+            rCategory,
             item_dict['Summary:'],
             item_dict['Importance 1 day:'],
             item_dict['Reasoning for 1 day score:'],
@@ -809,21 +812,21 @@ def stage_1_thread_handler(
             summary[1]
         ]
     except InvalidRequestError as er:
-        return [er, 'Error', article, site_name, link]
+        return [er, 'Error', article, site_name, link, rCategory]
     except RateLimitError as er:
         print(f"args: {er.args}\nparam: {er.code}, error: {er.error}, header: {er.headers}")
         if er.error['type'] == 'insufficient_quota':
-            return [apikey, 'APIKey_Error', article, site_name, link]
+            return [apikey, 'APIKey_Error', article, site_name, link, rCategory]
         # elif er.error['type'] == 'requests' and er.error['code'] == 'rate_limit_exceeded':
         elif er.error['code'] == 'rate_limit_exceeded':
             # check if remaining requests are not 0
-            return [er, 'Error', article, site_name, link]
+            return [er, 'Error', article, site_name, link, rCategory]
             # if er.headers['x-ratelimit-remaining-requests'] == 0:
             # else:
             #     sleep(20)
             #     return stage_1_thread_handler( apikey, article, site_name, link,)
     except AuthenticationError as er:
-        return [apikey, 'APIKey_Error', article, site_name, link]
+        return [apikey, 'APIKey_Error', article, site_name, link, rCategory]
     except Exception as er:
         # if 'Limit: 200 / day' in str(er):
         #     sleep(450)
@@ -833,7 +836,7 @@ def stage_1_thread_handler(
         #     return stage_1_thread_handler( apikey, article, site_name, link,)
         # if 'Limit: 3 / min' in str(er) and 'Rate limit reached' in str(er):
         #     return stage_1_thread_handler(str, article, site_name, link)
-        return [er, 'Error', article, site_name, link]
+        return [er, 'Error', article, site_name, link, rCategory]
 
 def stage_3_thread_handler(
         apikey: str,

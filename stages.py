@@ -114,7 +114,7 @@ def extra_research(apikey: str, articles: list[str]):
     original_prompt = load_prompt("./prompts/extra-research.yaml")
     full_template="""{{rules}}
     Please adhere to the following structure for your examination
-    Output must be in this format. This must be python dictinoary or json object
+    Output must be in this format. This must be valid python dictinoary or json object
     Don't include " in the middle of result sentences in the output
     Don't include ' in the middle of result sentences in the output
     Don't include line breaking character (new line character) in the middle of result sentences in the output
@@ -196,7 +196,10 @@ def deep_research(apikey: str, articles: list[dict[str:str]], background: dict):
     Don't include " in the middle of result sentences in output
     Output format must follow this format
     Output must be json object
-    ###Output Format###
+    
+    This must be valid python dictinoary or json object
+    
+    ###Output Format to follow###
     {"1 day timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}, "1 week timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}, "1 month timeframe": {"Most likely": {"Description": "Most likely", "Explanation": "Explanation"}, "Possible": {"Description": "Possible", "Explanation": "Explanation"}, "Unlikely": {"Description": "Unlikely", "Explanation": "Explanation"}}}
 
     ###additional background, context, and examples###
@@ -337,6 +340,8 @@ def prediction(apikey: str, topics: list[dict], category: str, timeframe: str):
     content = "\n".join([f"topic: {topic['topic']}\nprediction: {topic['prediction']}" for topic in topics])
 
     main_prompt = load_prompt("./prompts/prediction.yaml")
+    category_prompt = PromptTemplate.from_template(category, template_format="jinja2")
+    timeframe_prompt = PromptTemplate.from_template(timeframe, template_format="jinja2")
     time = "on a 1-day time frame"    
     if timeframe == 'week':
         time = 'on a 1-week time frame'
@@ -344,10 +349,16 @@ def prediction(apikey: str, topics: list[dict], category: str, timeframe: str):
         time = 'on a 1-month time frame'
 
     full_template="""
+    Imagine you are a professional news analyst and journalist
+
+    ###Task###
+    Let's think step by step.
+
+    Describe what you believe to be the next biggest development or emerging trend in the {{category}} category of the news based on the predictions and summaries to the most relevant news topics {{timeframe}}.
     {{main}}
     #######
     Output must follow this format
-    Output must be in this format. This must be python dictinoary or json object
+    Output must be in this format. This must be valid python dictinoary or json object
     Don't include " in the middle of result sentences
     The output for Explanation should explain how the developing trend came to be as well as describe in detail the potential connections, ripple effects, etc of the developing trend
 
@@ -357,6 +368,8 @@ def prediction(apikey: str, topics: list[dict], category: str, timeframe: str):
     final_prompt = PromptTemplate.from_template(full_template, template_format="jinja2")
     input_prompts = [
         ("main", main_prompt),
+        ("category", category_prompt),
+        ("timeframe", timeframe_prompt),
     ]
     prompt = PipelinePromptTemplate(final_prompt=final_prompt, pipeline_prompts=input_prompts)
 

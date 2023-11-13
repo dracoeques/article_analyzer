@@ -1,13 +1,6 @@
 _type: prompt
-input_variables: ["topics", "category", "timeframe"]
+input_variables: ["topics"]
 template: |
-  Imagine you are a professional news analyst and journalist
-
-  ###Task###
-  Let's think step by step.
-
-  Describe what you believe to be the next biggest development or emerging trend in the {category} category of the news based on the predictions and summaries to the most relevant news topics {time}.
-
   Help to paint the idea of similarities between the different events described in the input when formulating the output.
 
   ###Goal###
