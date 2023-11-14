@@ -102,8 +102,7 @@ class Analyzer:
         with open(csv_filename, 'a', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow([
-                'article',
-                'answer',
+                'baseData',
                 'Title',
                 'Category',
                 'Summary',
@@ -159,18 +158,19 @@ class Analyzer:
             for row in csv_reader:
                 if not row:
                     continue
-                article = row[0]
-                title = row[2]
-                category = row[3]
-                summary = row[4]
-                day_score = row[5]
-                day_reason = row[6]
-                week_score = row[7]
-                week_reason = row[8]
-                month_score = row[9]
-                month_reason = row[10]
-                site_name = row[11]
-                link = row[12]
+                baseData = json.loads(row[0])
+                article = baseData['article']
+                title = row[1]
+                category = row[2]
+                summary = row[3]
+                day_score = row[4]
+                day_reason = row[5]
+                week_score = row[6]
+                week_reason = row[7]
+                month_score = row[8]
+                month_reason = row[9]
+                site_name = row[10]
+                link = row[11]
 
                 score = {
                     "day": {"score": day_score, "reason": day_reason},
@@ -210,22 +210,22 @@ class Analyzer:
             for row in csv_reader:
                 total += 1
                 try:
-                    if row[2] == '': continue
-                    if timeframe == 'day' and row[5] == '': continue
-                    if timeframe == 'week' and row[7] == '': continue
-                    if timeframe == 'month' and row[9] == '': continue
+                    if row[1] == '': continue
+                    if timeframe == 'day' and row[4] == '': continue
+                    if timeframe == 'week' and row[6] == '': continue
+                    if timeframe == 'month' and row[8] == '': continue
                     score = 0
                     if timeframe == 'day':
-                        score = int(remove_non_numbers_regex(row[5]))
+                        score = int(remove_non_numbers_regex(row[4]))
                     elif timeframe == 'week':
-                        score = int(remove_non_numbers_regex(row[7]))
+                        score = int(remove_non_numbers_regex(row[6]))
                     elif timeframe == 'month':
-                        score = int(remove_non_numbers_regex(row[9]))
+                        score = int(remove_non_numbers_regex(row[8]))
 
-                    article = row[0]
-                    title = row[2]
-                    category = row[3]  # Assuming the category is in the 4th column
-                    summary = row[4]
+                    article = json.loads(row[0])['article']
+                    title = row[1]
+                    category = row[2]  # Assuming the category is in the 4th column
+                    summary = row[3]
                     categories.add(category)  # Add category to the set of unique categories
 
                     if any(item['title'] == title for item in titles):
@@ -336,10 +336,10 @@ class Analyzer:
             next(csv_reader)
             for row in csv_reader:
                 summaries.append({
-                    "category": row[3],
-                    "title": row[2],
-                    "summary": row[4],
-                    "content": row[0],
+                    "category": row[2],
+                    "title": row[1],
+                    "summary": row[3],
+                    "content": json.loads(row[0])['article'],
                 })
         total = 0
         with open(category_csv, 'r', encoding='utf-8') as file:
@@ -795,9 +795,12 @@ def stage_1_thread_handler(
                     content = line[len(item):].strip()
                     item_dict[item] = content
                     break
+        baseData = {
+            'article': article,
+            'result': summary[0]
+        }
         return [
-            article,
-            summary[0],
+            json.dumps(baseData),            
             item_dict['Title:'],
             rCategory,
             item_dict['Summary:'],
