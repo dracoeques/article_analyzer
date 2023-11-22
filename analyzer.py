@@ -43,7 +43,7 @@ class Analyzer:
             5: "artandfashion",
             6: "bizandfinance",
             7: "politics",
-            8: "scienceandteche",
+            8: "scienceandtech",
             9: "lifestyleandhealth",
             10: "gaming"
         }
@@ -88,10 +88,13 @@ class Analyzer:
             collection = self.article_db[category][curDate]
             rcategory = self.categories[idx]
             documents = collection.find()
+            cate_article_count = 0
             for document in documents:
                 article_count += 1
-                print(f"{article_count} : {rcategory}: {document['siteName']}, {document['link']}")
+                cate_article_count += 1
+                # print(f"{article_count} : {rcategory}: {document['siteName']}, {document['link']}")
                 articles.append([document['article'], document['siteName'], document['link'], rcategory])
+            self.logger.log(f'Stage 1 - {category} {curDate} {cate_article_count} articles')
         end_t = time()
         
         self.logger.log(f'Stage 1 - {len(articles)} articles uploaded in {end_t - start_t} seconds, start processing...')
