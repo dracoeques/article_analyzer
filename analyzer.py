@@ -408,6 +408,9 @@ class Analyzer:
                         self.log_invalid_key(api_key)
                     elif article_data[1] == 'Error':
                         print(f"Statge 3 - Error was occurred in extra research\n: {article_data[0]}")
+                    elif article_data[1] == 'UnexpectedError':
+                        print(f"Statge 3 - UnexpectedError was occurred in extra research\n: {article_data[0]}")
+                        continue
                     else:
                         writer.writerow(article_data[0:-1])
                         researched_count += 1
@@ -867,7 +870,7 @@ def stage_3_thread_handler(
     except Exception as er:
         error = str(traceback.print_exc())
         print(error)
-        return [er, 'Error', category, topic, articles]
+        return [er, 'UnexpectedError', category, topic, articles]
 
 def stage_4_thread_handler(
         apikey: str,
