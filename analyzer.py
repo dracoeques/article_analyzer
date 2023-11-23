@@ -635,6 +635,12 @@ class Analyzer:
         apikey = random.choice(self.apikeys)
         try:
             result = impactul_news(apikey=apikey, articles=articles)
+            try:
+                eval(result[0])
+            except NameError as er:
+                return self.stage_5_impactful_news(articles)
+            except SyntaxError as er:
+                return self.stage_5_impactful_news(articles)
             return result
         except InvalidRequestError as er:
             result = self.stage_5_impactful_news(articles)
