@@ -574,22 +574,22 @@ class Analyzer:
             for row in csv_reader:
                 total += 1
                 try:
-                    if row[2] == '': continue
-                    if timeframe == 'day' and row[5] == '': continue
-                    if timeframe == 'week' and row[7] == '': continue
-                    if timeframe == 'month' and row[9] == '': continue
+                    if row[1] == '': continue
+                    if timeframe == 'day' and row[4] == '': continue
+                    if timeframe == 'week' and row[6] == '': continue
+                    if timeframe == 'month' and row[8] == '': continue
                     score = 0
                     if timeframe == 'day':
-                        score = int(remove_non_numbers_regex(row[5]))
+                        score = int(remove_non_numbers_regex(row[4]))
                     elif timeframe == 'week':
-                        score = int(remove_non_numbers_regex(row[7]))
+                        score = int(remove_non_numbers_regex(row[6]))
                     elif timeframe == 'month':
-                        score = int(remove_non_numbers_regex(row[9]))
+                        score = int(remove_non_numbers_regex(row[8]))
 
                     # article = row[0]
-                    title = row[2]
-                    category = row[3]  # Assuming the category is in the 4th column
-                    summary = row[4]
+                    title = row[1]
+                    category = row[2]  # Assuming the category is in the 4th column
+                    summary = row[3]
                     categories.add(category)  # Add category to the set of unique categories
 
                     if any(item['title'] == title for item in articles):
