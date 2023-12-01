@@ -1,19 +1,23 @@
-import os
 import csv
-import multiprocessing
-from multiprocessing.pool import ApplyResult
-from pymongo import MongoClient
-from pymongo.database import Database
-from dotenv import find_dotenv, load_dotenv
-from stages import summarize_article, categorize, extra_research, deep_research, impactul_news, prediction
-from logger import Logger
-from time import time, sleep
-from openai.error import InvalidRequestError, RateLimitError, AuthenticationError
-import random
-from helpers import remove_non_numbers_regex
 import json
+import multiprocessing
+import os
+import random
 import traceback
 from datetime import date
+from multiprocessing.pool import ApplyResult
+from time import sleep, time
+
+from dotenv import find_dotenv, load_dotenv
+from openai.error import (AuthenticationError, InvalidRequestError,
+                          RateLimitError)
+from pymongo import MongoClient
+from pymongo.database import Database
+
+from helpers import remove_non_numbers_regex
+from logger import Logger
+from stages import (categorize, deep_research, extra_research, impactul_news,
+                    prediction, summarize_article)
 
 # find and load .env file
 load_dotenv(find_dotenv())
@@ -161,7 +165,13 @@ class Analyzer:
             for row in csv_reader:
                 if not row:
                     continue
-                baseData = json.loads(row[0])
+                try:
+                    baseData = json.loads(row[0])
+                except Exception as e:
+                    self.logger.log(f'Stage 1 - Failed to save analyzed article', e)
+                    print("Failed to save summarized article:\ncontent======", row[0])
+                    print("error ===========", e)
+                    continue
                 article = baseData['article']
                 title = row[1]
                 category = row[2]
