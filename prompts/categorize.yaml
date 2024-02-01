@@ -9,6 +9,7 @@ template: |
   Match as many "Secondary" titles to the "Primary" titles as possible.
 
   Hard constraint: only make groupings between primary and secondary titles ONLY if they have the EXACT same words within them
+  Keep in mind some of the primary titles will not have a secondary title grouping.
   Create a vague enough title to represent the grouping created.
 
   ###Output Format###
