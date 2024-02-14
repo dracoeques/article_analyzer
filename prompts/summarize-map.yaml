@@ -45,6 +45,7 @@ template: |
   ###Instructions for task 4###
   Rank the news articles in terms of their importance for a 1-day, 1-week, and 1-month timeframe, using the following definitive criteria: political significance, economic impact, social consequences, and public attention in the United States and global context. 
 
+  Articles that talk about historical events that occured in the past or where the topic is not within the past few months should be given a lesser score respectively 
 
   Political significance in terms of its impact on governmental policies, international relations, or geopolitical dynamics.
 
